@@ -1,0 +1,85 @@
+"""Main FastAPI application."""
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.config import settings
+from app.database import init_db, close_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager."""
+    # Startup
+    print("🚀 Starting ATS Platform API...")
+    await init_db()
+    print("✅ Database initialized")
+    
+    yield
+    
+    # Shutdown
+    print("👋 Shutting down ATS Platform API...")
+    await close_db()
+    print("✅ Database connections closed")
+
+
+# Create FastAPI application
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description="AI-First Application Tracking System API",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "app": settings.app_name,
+        "version": settings.app_version,
+        "environment": settings.environment,
+    }
+
+
+@app.get("/")
+async def root():
+    """Root endpoint."""
+    return {
+        "message": "Welcome to ATS Platform API",
+        "version": settings.app_version,
+        "docs": "/docs",
+    }
+
+
+# Import and include routers
+# TODO: Import routers after creating them
+# from app.routers import auth, jobs, candidates, applications, interviews, ai
+# app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}/auth", tags=["Authentication"])
+# app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}/jobs", tags=["Jobs"])
+# app.include_router(candidates.router, prefix=f"{settings.api_v1_prefix}/candidates", tags=["Candidates"])
+# app.include_router(applications.router, prefix=f"{settings.api_v1_prefix}/applications", tags=["Applications"])
+# app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}/interviews", tags=["Interviews"])
+# app.include_router(ai.router, prefix=f"{settings.api_v1_prefix}/ai", tags=["AI Services"])
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
+    )
