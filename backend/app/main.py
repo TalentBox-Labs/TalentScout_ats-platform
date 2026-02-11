@@ -65,14 +65,14 @@ async def root():
 
 
 # Import and include routers
-# TODO: Import routers after creating them
-# from app.routers import auth, jobs, candidates, applications, interviews, ai
-# app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}/auth", tags=["Authentication"])
-# app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}/jobs", tags=["Jobs"])
-# app.include_router(candidates.router, prefix=f"{settings.api_v1_prefix}/candidates", tags=["Candidates"])
-# app.include_router(applications.router, prefix=f"{settings.api_v1_prefix}/applications", tags=["Applications"])
-# app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}/interviews", tags=["Interviews"])
-# app.include_router(ai.router, prefix=f"{settings.api_v1_prefix}/ai", tags=["AI Services"])
+from app.routers import auth, jobs, candidates, applications, interviews, ai
+
+app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(candidates.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(applications.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(ai.router, prefix=f"{settings.api_v1_prefix}")
 
 
 if __name__ == "__main__":
