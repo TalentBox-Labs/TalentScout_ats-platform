@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
 
   const loadAnalytics = async () => {
     try {
-      const data = await apiClient.get('/api/v1/analytics');
+      const data = await apiClient.getAnalytics();
       setAnalytics(data);
     } catch (error) {
       console.error('Failed to load analytics:', error);

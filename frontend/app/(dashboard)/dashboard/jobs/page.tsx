@@ -20,7 +20,7 @@ export default function JobsPage() {
 
   const loadJobs = async () => {
     try {
-      const data = await apiClient.get('/api/v1/jobs');
+      const data = await apiClient.getJobs();
       setJobs(data);
     } catch (error) {
       console.error('Failed to load jobs:', error);

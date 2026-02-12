@@ -185,6 +185,55 @@ class APIClient {
     return response.data
   }
 
+  // Analytics
+  async getAnalytics() {
+    const response = await this.client.get('/api/v1/analytics')
+    return response.data
+  }
+
+  // Interviews
+  async getInterviews() {
+    const response = await this.client.get('/api/v1/interviews')
+    return response.data
+  }
+
+  // Integrations
+  async getIntegrations() {
+    const response = await this.client.get('/api/v1/integrations')
+    return response.data
+  }
+
+  async connectIntegration(integrationId: string) {
+    const response = await this.client.post(`/api/v1/integrations/${integrationId}/connect`)
+    return response.data
+  }
+
+  async disconnectIntegration(integrationId: string) {
+    const response = await this.client.post(`/api/v1/integrations/${integrationId}/disconnect`)
+    return response.data
+  }
+
+  async updateIntegrationConfig(integrationId: string, config: any) {
+    const response = await this.client.put(`/api/v1/integrations/${integrationId}/config`, config)
+    return response.data
+  }
+
+  // Onboarding
+  async getOnboardingStatus() {
+    const response = await this.client.get('/api/v1/onboarding/status')
+    return response.data
+  }
+
+  async completeOnboardingStep(stepId: string) {
+    const response = await this.client.post(`/api/v1/onboarding/complete/${stepId}`)
+    return response.data
+  }
+
+  async updateCompany(companyInfo: any) {
+    const response = await this.client.put('/api/v1/company', companyInfo)
+    return response.data
+  }
+
   // AI Services
   async parseResume(file: File) {
     const formData = new FormData()
@@ -211,7 +260,15 @@ class APIClient {
     email_type: string
     tone?: string
   }) {
-    const response = await this.client.post('/api/v1/ai/generate-email', data)
+    const response = await this.client.post('/api/v1/ai/generate-email', {
+      template_type: data.email_type,
+      context: {
+        candidate_name: data.candidate_name,
+        job_title: data.job_title,
+        company_name: data.company_name,
+      },
+      tone: data.tone,
+    })
     return response.data
   }
 }

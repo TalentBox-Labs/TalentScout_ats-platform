@@ -48,7 +48,7 @@ export default function PipelinePage() {
 
   const loadApplications = async () => {
     try {
-      const data = await apiClient.get('/api/v1/applications');
+      const data = await apiClient.getApplications();
       setApplications(data);
 
       // Extract unique stages from applications' jobs

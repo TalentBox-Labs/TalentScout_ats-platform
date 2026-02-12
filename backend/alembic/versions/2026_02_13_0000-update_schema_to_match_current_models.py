@@ -198,7 +198,6 @@ def upgrade() -> None:
     op.drop_column('applications', 'screening_notes')
     op.drop_column('applications', 'ai_summary')
     op.drop_column('applications', 'match_score')
-    op.drop_column('applications', 'organization_id')
     op.drop_column('applications', 'assigned_to')
 
     # Add foreign key constraints

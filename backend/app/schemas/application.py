@@ -92,13 +92,13 @@ class ApplicationListResponse(BaseModel):
     id: UUID
     candidate_id: UUID
     job_id: UUID
-    stage_id: Optional[UUID] = None
+    current_stage: Optional[UUID] = None
     status: str
     ai_match_score: Optional[float] = None
     created_at: datetime
     candidate: Optional[Dict[str, Any]] = None
     job: Optional[Dict[str, Any]] = None
-    current_stage: Optional[Dict[str, Any]] = None
+    current_stage_obj: Optional[Dict[str, Any]] = None
     
     class Config:
         from_attributes = True
@@ -109,7 +109,7 @@ class ApplicationResponse(BaseModel):
     id: UUID
     candidate_id: UUID
     job_id: UUID
-    stage_id: Optional[UUID] = None
+    current_stage: Optional[UUID] = None
     status: str
     source: str
     cover_letter: Optional[str] = None
@@ -122,7 +122,7 @@ class ApplicationResponse(BaseModel):
     updated_at: Optional[datetime] = None
     candidate: Optional[Dict[str, Any]] = None
     job: Optional[Dict[str, Any]] = None
-    current_stage: Optional[Dict[str, Any]] = None
+    current_stage_obj: Optional[Dict[str, Any]] = None
     activities: Optional[List[ActivityResponse]] = None
     notes: Optional[List[NoteResponse]] = None
     scores: Optional[List[ScoreResponse]] = None

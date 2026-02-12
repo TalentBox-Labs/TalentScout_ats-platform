@@ -3,7 +3,6 @@ Celery worker for generating job embeddings using AI service.
 """
 from celery import Celery
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import create_async_session, AsyncSession
 import asyncio
 
 from app.config import settings

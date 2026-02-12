@@ -114,7 +114,7 @@ export default function IntegrationsPage() {
 
   const loadIntegrations = async () => {
     try {
-      const data = await apiClient.get('/api/v1/integrations');
+      const data = await apiClient.getIntegrations();
       // Update integrations with server data
       setIntegrations(prev => prev.map(integration => ({
         ...integration,
@@ -131,7 +131,7 @@ export default function IntegrationsPage() {
   const connectIntegration = async (integrationId: string) => {
     setSaving(integrationId);
     try {
-      await apiClient.post(`/api/v1/integrations/${integrationId}/connect`);
+      await apiClient.connectIntegration(integrationId);
       setIntegrations(prev => prev.map(integration =>
         integration.id === integrationId
           ? { ...integration, connected: true }
@@ -147,7 +147,7 @@ export default function IntegrationsPage() {
   const disconnectIntegration = async (integrationId: string) => {
     setSaving(integrationId);
     try {
-      await apiClient.post(`/api/v1/integrations/${integrationId}/disconnect`);
+      await apiClient.disconnectIntegration(integrationId);
       setIntegrations(prev => prev.map(integration =>
         integration.id === integrationId
           ? { ...integration, connected: false }
@@ -163,7 +163,7 @@ export default function IntegrationsPage() {
   const updateConfig = async (integrationId: string, config: any) => {
     setSaving(integrationId);
     try {
-      await apiClient.put(`/api/v1/integrations/${integrationId}/config`, config);
+      await apiClient.updateIntegrationConfig(integrationId, config);
       setIntegrations(prev => prev.map(integration =>
         integration.id === integrationId
           ? { ...integration, config: { ...integration.config, ...config } }

@@ -22,7 +22,7 @@ export default function CandidatesPage() {
 
   const loadCandidates = async () => {
     try {
-      const data = await apiClient.get('/api/v1/candidates');
+      const data = await apiClient.getCandidates();
       setCandidates(data);
     } catch (error) {
       console.error('Failed to load candidates:', error);

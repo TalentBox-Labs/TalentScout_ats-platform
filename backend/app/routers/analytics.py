@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.user import User
 from app.models.application import Application
-from app.models.job import Job
+from app.models.job import Job, JobStage
 from app.models.candidate import Candidate
 from app.middleware.auth import get_current_user
 

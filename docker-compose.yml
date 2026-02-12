@@ -83,7 +83,7 @@ services:
     depends_on:
       - redis
       - postgres
-    command: celery -A app.workers.celery_app worker --loglevel=info
+    command: celery -A app.workers.ai_screening worker --loglevel=info
     networks:
       - ats_network
 

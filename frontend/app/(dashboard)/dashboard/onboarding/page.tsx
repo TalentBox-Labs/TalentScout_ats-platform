@@ -73,7 +73,7 @@ export default function OnboardingPage() {
 
   const loadOnboardingStatus = async () => {
     try {
-      const data = await apiClient.get('/api/v1/onboarding/status');
+      const data = await apiClient.getOnboardingStatus();
       setSteps(data.steps);
       setCurrentStep(data.currentStep);
     } catch (error) {
@@ -83,7 +83,7 @@ export default function OnboardingPage() {
 
   const completeStep = async (stepId: string) => {
     try {
-      await apiClient.post(`/api/v1/onboarding/complete/${stepId}`);
+      await apiClient.completeOnboardingStep(stepId);
       setSteps(prev => prev.map(step =>
         step.id === stepId ? { ...step, completed: true } : step
       ));
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
 
   const saveCompanyInfo = async () => {
     try {
-      await apiClient.put('/api/v1/company', companyInfo);
+      await apiClient.updateCompany(companyInfo);
       completeStep('company');
     } catch (error) {
       console.error('Failed to save company info:', error);

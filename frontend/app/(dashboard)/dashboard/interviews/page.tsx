@@ -40,7 +40,7 @@ export default function InterviewsPage() {
 
   const loadInterviews = async () => {
     try {
-      const data = await apiClient.get('/api/v1/interviews');
+      const data = await apiClient.getInterviews();
       setInterviews(data);
     } catch (error) {
       console.error('Failed to load interviews:', error);

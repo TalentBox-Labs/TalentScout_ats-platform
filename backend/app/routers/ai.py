@@ -10,7 +10,7 @@ from sqlalchemy import text, select, and_
 
 from app.database import get_db
 from app.models.user import User
-from app.models.application import Application
+from app.models.application import Application, ApplicationActivity, ActivityType
 from app.models.candidate import Candidate
 from app.models.job import Job
 from app.middleware.auth import get_current_user
@@ -137,6 +137,16 @@ async def re_run_ai_screening(
     application.ai_strengths = screening_result.get("strengths", [])
     application.ai_concerns = screening_result.get("concerns", [])
     application.ai_recommendation = screening_result.get("recommendation")
+    
+    # Create activity log
+    activity = ApplicationActivity(
+        application_id=application.id,
+        activity_type=ActivityType.SCREENING_COMPLETED,
+        title="AI Screening Completed",
+        description=f"AI screening completed with fit score: {screening_result.get('fit_score')}%",
+        metadata=screening_result,
+    )
+    db.add(activity)
     
     await db.commit()
     

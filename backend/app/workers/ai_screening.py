@@ -25,6 +25,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    include=["app.workers.ai_screening", "app.workers.embedding_worker", "app.workers.resume_parser"],
 )
 
 
@@ -103,9 +104,9 @@ async def _screen_candidate_async(application_id: str):
         # Create activity log
         activity = ApplicationActivity(
             application_id=application.id,
-            activity_type=ActivityType.ASSESSMENT_COMPLETED,
+            activity_type=ActivityType.SCREENING_COMPLETED,
             title="AI Screening Completed",
-            description=f"AI screening completed with match score: {screening_result.get('match_score')}%",
+            description=f"AI screening completed with fit score: {screening_result.get('fit_score')}%",
             metadata=screening_result,
         )
         db.add(activity)
@@ -113,4 +114,4 @@ async def _screen_candidate_async(application_id: str):
         await db.commit()
         
         print(f"AI screening completed for application {application_id}")
-        print(f"Match score: {screening_result.get('match_score')}%")
+        print(f"Fit score: {screening_result.get('fit_score')}%")

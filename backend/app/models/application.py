@@ -24,6 +24,7 @@ class ActivityType(str, enum.Enum):
     EMAIL_SENT = "email_sent"
     INTERVIEW_SCHEDULED = "interview_scheduled"
     ASSESSMENT_COMPLETED = "assessment_completed"
+    SCREENING_COMPLETED = "screening_completed"
     STATUS_CHANGED = "status_changed"
     SCORE_UPDATED = "score_updated"
 
