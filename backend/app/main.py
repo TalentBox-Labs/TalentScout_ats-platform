@@ -75,6 +75,10 @@ from app.routers import (
     assessments,
     interviews,
     communications,
+    analytics,
+    settings,
+    onboarding,
+    integrations,
 )
 
 app.include_router(auth.router)
@@ -86,6 +90,10 @@ app.include_router(ai.router)
 app.include_router(assessments.router)
 app.include_router(interviews.router)
 app.include_router(communications.router)
+app.include_router(analytics.router)
+app.include_router(settings.router)
+app.include_router(onboarding.router)
+app.include_router(integrations.router)
 
 
 if __name__ == "__main__":

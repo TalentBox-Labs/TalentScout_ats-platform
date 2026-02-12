@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .logo {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 8px;
+    }
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 4px 0 0 0;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+    .status.connected {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .status.disconnected {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    .button {
+      width: 100%;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .button.primary {
+      background: #3b82f6;
+      color: white;
+    }
+    .button.primary:hover {
+      background: #2563eb;
+    }
+    .button.secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    .button.secondary:hover {
+      background: #e5e7eb;
+    }
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .section {
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    .candidate-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    .candidate-name {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    .candidate-title {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .candidate-company {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .action-button {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: white;
+      color: #374151;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .action-button:hover {
+      background: #f9fafb;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🎯</div>
+    <h1 class="title">TalentScout</h1>
+    <p class="subtitle">Source candidates from anywhere</p>
+  </div>
+
+  <div id="status" class="status disconnected">
+    Not connected to TalentScout
+  </div>
+
+  <div class="section">
+    <h2 class="section-title">Current Page</h2>
+    <div id="current-candidate" class="candidate-card" style="display: none;">
+      <div class="candidate-name" id="candidate-name"></div>
+      <div class="candidate-title" id="candidate-title"></div>
+      <div class="candidate-company" id="candidate-company"></div>
+      <div class="actions">
+        <button class="action-button" id="save-candidate">Save to ATS</button>
+        <button class="action-button" id="view-profile">View Profile</button>
+      </div>
+    </div>
+    <div id="no-candidate" style="text-align: center; color: #6b7280; font-size: 12px;">
+      Navigate to a LinkedIn or GitHub profile to see candidate info
+    </div>
+  </div>
+
+  <div class="section">
+    <button class="button primary" id="connect-button">
+      Connect to TalentScout
+    </button>
+  </div>
+
+  <div class="section">
+    <button class="button secondary" id="settings-button">
+      Extension Settings
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+name: Extension CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/extension.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'extension/**'
+      - '.github/workflows/extension.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./extension
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Lint code
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test
+
+    - name: Validate manifest
+      run: |
+        # Check if manifest.json is valid JSON
+        cat manifest.json | jq . > /dev/null
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create build directory
+      run: |
+        mkdir -p extension-build
+        cp -r extension/* extension-build/
+
+    - name: Install dependencies
+      working-directory: ./extension-build
+      run: npm install
+
+    - name: Build extension
+      working-directory: ./extension-build
+      run: npm run build
+
+    - name: Package extension
+      run: |
+        cd extension-build
+        zip -r ../talentscout-extension.zip .
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: talentscout-extension
+        path: talentscout-extension.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: talentscout-extension
+
+    - name: Create GitHub release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: extension-v${{ github.run_number }}
+        release_name: TalentScout Extension v${{ github.run_number }}
+        body: |
+          New TalentScout Chrome extension release.
+
+          ## Changes
+          - Automated build from commit ${{ github.sha }}
+
+        draft: false
+        prerelease: false
+
+    - name: Upload release asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./talentscout-extension.zip
+        asset_name: talentscout-extension.zip
+        asset_content_type: application/zip

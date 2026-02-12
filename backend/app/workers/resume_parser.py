@@ -48,19 +48,45 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
             raise ValueError(f"Candidate {candidate_id} not found")
         
         # Download resume bytes
-        # For now, assume resume_url is a local file path
-        try:
-            with open(resume_url, 'rb') as f:
-                file_bytes = f.read()
-        except Exception as e:
-            raise ValueError(f"Failed to download/read resume file: {str(e)}")
+        if resume_url.startswith('https://') and 's3' in resume_url:
+            # Handle S3 URL
+            import boto3
+            from botocore.exceptions import ClientError
+            
+            try:
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.aws_access_key_id,
+                    aws_secret_access_key=settings.aws_secret_access_key,
+                    region_name=settings.aws_region
+                )
+                
+                # Extract bucket and key from URL
+                # URL format: https://bucket-name.s3.region.amazonaws.com/key
+                url_parts = resume_url.replace('https://', '').split('/')
+                bucket = url_parts[0].split('.')[0]
+                key = '/'.join(url_parts[1:])
+                
+                # Download file from S3
+                response = s3_client.get_object(Bucket=bucket, Key=key)
+                file_bytes = response['Body'].read()
+                
+            except ClientError as e:
+                raise ValueError(f"Failed to download resume from S3: {str(e)}")
+        else:
+            # Handle local file path
+            try:
+                with open(resume_url, 'rb') as f:
+                    file_bytes = f.read()
+            except Exception as e:
+                raise ValueError(f"Failed to read local resume file: {str(e)}")
         
         # Determine filename from URL/path
         filename = resume_url.split('/')[-1] or f"resume.{content_type.split('/')[-1]}"
         
         # Parse resume file using synchronous parser
         parser_service = ParserService()
-        resume_text = parser_service.extract_text(file_bytes, filename)
+        resume_text = await parser_service.extract_text_from_bytes(file_bytes, content_type)
         
         if not resume_text:
             raise ValueError("Failed to extract text from resume")
@@ -88,7 +114,7 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
             experience = CandidateExperience(
                 candidate_id=candidate.id,
                 company=exp["company"],
-                title=exp["position"],
+                title=exp.get("title"),
                 start_date=exp.get("start_date"),
                 end_date=exp.get("end_date"),
                 is_current=exp.get("is_current", False),

@@ -24,8 +24,12 @@ from app.schemas.candidate import (
     ExperienceResponse,
     EducationResponse,
 )
+from app.config import Settings
 from app.workers.resume_parser import parse_resume_task
 from app.services.ai_service import AIService
+
+# Get settings
+settings = Settings()
 
 router = APIRouter(prefix="/api/v1/candidates", tags=["candidates"])
 
@@ -248,30 +252,59 @@ async def upload_resume(
     # Read file content
     file_content = await file.read()
     
-    # Create uploads directory if it doesn't exist
-    import os
-    upload_dir = f"uploads/{candidate_id}"
-    os.makedirs(upload_dir, exist_ok=True)
+    # Upload to S3
+    import boto3
+    from botocore.exceptions import NoCredentialsError, ClientError
     
-    # Save file locally
-    file_path = f"{upload_dir}/{file.filename}"
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    try:
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.aws_access_key_id,
+            aws_secret_access_key=settings.aws_secret_access_key,
+            region_name=settings.aws_region
+        )
+        
+        # Generate unique filename
+        import uuid
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        s3_key = f"candidates/{candidate_id}/resumes/{unique_filename}"
+        
+        # Upload file to S3
+        s3_client.put_object(
+            Bucket=settings.s3_bucket_name,
+            Key=s3_key,
+            Body=file_content,
+            ContentType=file.content_type,
+            ACL='private'  # Files are private, accessed via signed URLs
+        )
+        
+        # Generate S3 URL
+        s3_url = f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{s3_key}"
+        candidate.resume_url = s3_url
+        
+    except NoCredentialsError:
+        # Fallback to local storage if S3 credentials not configured
+        import os
+        upload_dir = f"uploads/{candidate_id}"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        file_path = f"{upload_dir}/{file.filename}"
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+        
+        candidate.resume_url = file_path
+        
+    except ClientError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload file to S3: {str(e)}",
+        )
     
-    # TODO: Upload to S3 instead of local storage
-    # import boto3
-    # s3_client = boto3.client('s3')
-    # s3_key = f"candidates/{candidate_id}/{file.filename}"
-    # s3_client.upload_fileobj(file.file, settings.s3_bucket, s3_key)
-    # s3_url = f"https://{settings.s3_bucket}.s3.amazonaws.com/{s3_key}"
-    # candidate.resume_url = s3_url
-    
-    # For now, store local file path
-    candidate.resume_url = file_path
     await db.commit()
     
     # Queue resume parsing in background
-    parse_resume_task.delay(str(candidate_id), file_path, file.content_type)
+    parse_resume_task.delay(str(candidate_id), candidate.resume_url, file.content_type)
     
     return {
         "message": "Resume uploaded successfully. Parsing in progress.",
