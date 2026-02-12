@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.application import Application, ApplicationActivity, ApplicationNote, ApplicationScore
+from app.models.application import Application, ApplicationActivity, ApplicationNote, ApplicationScore, ActivityType
 from app.models.candidate import Candidate
 from app.models.job import Job
 from app.middleware.auth import get_current_user
@@ -53,7 +53,7 @@ async def list_applications(
         .options(
             selectinload(Application.candidate),
             selectinload(Application.job),
-            selectinload(Application.current_stage)
+            selectinload(Application.current_stage_obj)
         )
     )
     
@@ -61,7 +61,7 @@ async def list_applications(
     if job_id:
         query = query.where(Application.job_id == job_id)
     if stage_id:
-        query = query.where(Application.stage_id == stage_id)
+        query = query.where(Application.current_stage == stage_id)
     if status_filter:
         query = query.where(Application.status == status_filter)
     
@@ -156,9 +156,10 @@ async def create_application(
     await db.refresh(new_application)
     
     # Create activity log
-    activity = Activity(
+    activity = ApplicationActivity(
         application_id=new_application.id,
-        type="status_change",
+        activity_type=ActivityType.CREATED,
+        title="Application Created",
         description="Application created",
         user_id=current_user.id,
     )
@@ -192,7 +193,7 @@ async def get_application(
         .options(
             selectinload(Application.candidate),
             selectinload(Application.job),
-            selectinload(Application.current_stage),
+            selectinload(Application.current_stage_obj),
             selectinload(Application.activities),
             selectinload(Application.notes),
             selectinload(Application.scores)
@@ -276,16 +277,17 @@ async def move_to_stage(
             detail="Application not found",
         )
     
-    old_stage_id = application.stage_id
-    application.stage_id = stage_data.stage_id
+    old_stage_id = application.current_stage
+    application.current_stage = stage_data.current_stage
     
     # Create activity log
-    activity = Activity(
+    activity = ApplicationActivity(
         application_id=application.id,
-        type="stage_change",
-        description=f"Moved to stage {stage_data.stage_id}",
+        activity_type=ActivityType.STAGE_CHANGED,
+        title="Stage Changed",
+        description=f"Moved to stage {stage_data.current_stage}",
         user_id=current_user.id,
-        metadata={"old_stage_id": str(old_stage_id), "new_stage_id": str(stage_data.stage_id)},
+        metadata={"old_stage_id": str(old_stage_id), "new_stage_id": str(stage_data.current_stage)},
     )
     db.add(activity)
     
@@ -327,9 +329,10 @@ async def update_status(
     application.status = status_data.status
     
     # Create activity log
-    activity = Activity(
+    activity = ApplicationActivity(
         application_id=application.id,
-        type="status_change",
+        activity_type=ActivityType.STATUS_CHANGED,
+        title="Status Changed",
         description=f"Status changed from {old_status} to {status_data.status}",
         user_id=current_user.id,
         metadata={"old_status": old_status, "new_status": status_data.status, "reason": status_data.reason},
@@ -371,7 +374,7 @@ async def add_note(
             detail="Application not found",
         )
     
-    new_note = Note(
+    new_note = ApplicationNote(
         application_id=application_id,
         user_id=current_user.id,
         content=note_data.content,
@@ -381,10 +384,11 @@ async def add_note(
     db.add(new_note)
     
     # Create activity log
-    activity = Activity(
+    activity = ApplicationActivity(
         application_id=application_id,
-        type="note_added",
-        description=f"Note added by {current_user.full_name}",
+        activity_type=ActivityType.NOTE_ADDED,
+        title="Note Added",
+        description=f"Note added by {current_user.first_name} {current_user.last_name}",
         user_id=current_user.id,
     )
     db.add(activity)
@@ -427,9 +431,9 @@ async def get_activities(
     
     # Get activities
     result = await db.execute(
-        select(Activity)
-        .where(Activity.application_id == application_id)
-        .order_by(desc(Activity.created_at))
+        select(ApplicationActivity)
+        .where(ApplicationActivity.application_id == application_id)
+        .order_by(desc(ApplicationActivity.created_at))
     )
     activities = result.scalars().all()
     
@@ -465,21 +469,22 @@ async def add_score(
             detail="Application not found",
         )
     
-    new_score = Score(
+    new_score = ApplicationScore(
         application_id=application_id,
         user_id=current_user.id,
         category=score_data.category,
         score=score_data.score,
         max_score=score_data.max_score,
-        comments=score_data.comments,
+        notes=score_data.notes,
     )
     
     db.add(new_score)
     
     # Create activity log
-    activity = Activity(
+    activity = ApplicationActivity(
         application_id=application_id,
-        type="score_added",
+        activity_type=ActivityType.SCORE_UPDATED,
+        title="Score Added",
         description=f"Score added: {score_data.category} - {score_data.score}/{score_data.max_score}",
         user_id=current_user.id,
     )

@@ -7,7 +7,7 @@ import io
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import select, and_, or_, text
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db

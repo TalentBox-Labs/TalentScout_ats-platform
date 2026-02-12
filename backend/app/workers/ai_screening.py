@@ -7,7 +7,7 @@ import asyncio
 
 from app.config import settings
 from app.database import async_session_maker
-from app.models.application import Application, Activity
+from app.models.application import Application, ApplicationActivity, ActivityType
 from app.models.candidate import Candidate
 from app.models.job import Job
 from app.services.ai_service import AIService
@@ -100,9 +100,10 @@ async def _screen_candidate_async(application_id: str):
         application.ai_concerns = screening_result.get("concerns", [])
         
         # Create activity log
-        activity = Activity(
+        activity = ApplicationActivity(
             application_id=application.id,
-            type="ai_screening",
+            activity_type=ActivityType.ASSESSMENT_COMPLETED,
+            title="AI Screening Completed",
             description=f"AI screening completed with match score: {screening_result.get('match_score')}%",
             metadata=screening_result,
         )

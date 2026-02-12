@@ -22,7 +22,7 @@ class ApplicationUpdate(BaseModel):
 
 class ApplicationStageUpdate(BaseModel):
     """Schema for moving application to different stage."""
-    stage_id: UUID
+    current_stage: UUID
 
 
 class ApplicationStatusUpdate(BaseModel):
@@ -55,7 +55,7 @@ class ScoreCreate(BaseModel):
     category: str = Field(..., min_length=1, max_length=100)
     score: float = Field(..., ge=0)
     max_score: float = Field(default=10.0, ge=1)
-    comments: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ScoreResponse(BaseModel):
@@ -66,7 +66,7 @@ class ScoreResponse(BaseModel):
     category: str
     score: float
     max_score: float
-    comments: Optional[str] = None
+    notes: Optional[str] = None
     created_at: datetime
     
     class Config:
