@@ -1,0 +1,288 @@
+"""
+Organization management router for multi-tenant support.
+"""
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
+from sqlalchemy.orm import selectinload
+
+from app.database import get_db
+from app.models.user import User, Organization
+from app.middleware.auth import get_current_user, RoleChecker
+from app.schemas.organization import (
+    OrganizationCreate,
+    OrganizationUpdate,
+    OrganizationResponse,
+    OrganizationMemberResponse,
+    OrganizationMemberUpdate,
+    OrganizationInvite,
+)
+
+router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
+
+
+@router.get("", response_model=List[OrganizationResponse])
+async def list_organizations(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all organizations the current user belongs to.
+    """
+    result = await db.execute(
+        select(Organization)
+        .join(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(Organization.members))
+    )
+    organizations = result.scalars().all()
+    
+    return organizations
+
+
+@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
+async def create_organization(
+    org_data: OrganizationCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create a new organization.
+    The creating user becomes the admin of the organization.
+    """
+    new_org = Organization(
+        name=org_data.name,
+        settings=org_data.settings or {},
+        is_active=True,
+    )
+    
+    db.add(new_org)
+    await db.flush()
+    
+    # Make current user the admin of this organization
+    current_user.organization_id = new_org.id
+    current_user.role = "admin"
+    
+    await db.commit()
+    await db.refresh(new_org)
+    
+    return new_org
+
+
+@router.get("/{organization_id}", response_model=OrganizationResponse)
+async def get_organization(
+    organization_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get organization details.
+    """
+    # Verify user has access to this organization
+    if current_user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization",
+        )
+    
+    result = await db.execute(
+        select(Organization)
+        .where(Organization.id == organization_id)
+        .options(selectinload(Organization.members))
+    )
+    organization = result.scalar_one_or_none()
+    
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+    
+    return organization
+
+
+@router.patch("/{organization_id}", response_model=OrganizationResponse)
+async def update_organization(
+    organization_id: UUID,
+    org_data: OrganizationUpdate,
+    current_user: User = Depends(RoleChecker(["admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update organization details (admin only).
+    """
+    # Verify user has access to this organization
+    if current_user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization",
+        )
+    
+    result = await db.execute(
+        select(Organization).where(Organization.id == organization_id)
+    )
+    organization = result.scalar_one_or_none()
+    
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found",
+        )
+    
+    # Update fields
+    if org_data.name is not None:
+        organization.name = org_data.name
+    if org_data.settings is not None:
+        organization.settings = org_data.settings
+    if org_data.is_active is not None:
+        organization.is_active = org_data.is_active
+    
+    await db.commit()
+    await db.refresh(organization)
+    
+    return organization
+
+
+@router.post("/{organization_id}/members", response_model=OrganizationMemberResponse)
+async def invite_member(
+    organization_id: UUID,
+    invite_data: OrganizationInvite,
+    current_user: User = Depends(RoleChecker(["admin", "manager"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Invite a team member to the organization.
+    Admin and managers can invite members.
+    """
+    # Verify user has access to this organization
+    if current_user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization",
+        )
+    
+    # Check if user already exists
+    result = await db.execute(
+        select(User).where(User.email == invite_data.email)
+    )
+    existing_user = result.scalar_one_or_none()
+    
+    if existing_user:
+        # Update existing user's organization
+        if existing_user.organization_id == organization_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already a member of this organization",
+            )
+        existing_user.organization_id = organization_id
+        existing_user.role = invite_data.role
+        await db.commit()
+        await db.refresh(existing_user)
+        return existing_user
+    
+    # TODO: Send invitation email with signup link
+    # For now, return a message
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found. Invitation email will be sent (not implemented yet).",
+    )
+
+
+@router.patch("/{organization_id}/members/{user_id}", response_model=OrganizationMemberResponse)
+async def update_member_role(
+    organization_id: UUID,
+    user_id: UUID,
+    member_data: OrganizationMemberUpdate,
+    current_user: User = Depends(RoleChecker(["admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update a member's role (admin only).
+    """
+    # Verify user has access to this organization
+    if current_user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization",
+        )
+    
+    result = await db.execute(
+        select(User).where(
+            and_(
+                User.id == user_id,
+                User.organization_id == organization_id
+            )
+        )
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found in this organization",
+        )
+    
+    # Prevent self-demotion from admin
+    if user.id == current_user.id and member_data.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change your own admin role",
+        )
+    
+    user.role = member_data.role
+    await db.commit()
+    await db.refresh(user)
+    
+    return user
+
+
+@router.delete("/{organization_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    organization_id: UUID,
+    user_id: UUID,
+    current_user: User = Depends(RoleChecker(["admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove a member from the organization (admin only).
+    """
+    # Verify user has access to this organization
+    if current_user.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this organization",
+        )
+    
+    # Prevent self-removal
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot remove yourself from the organization",
+        )
+    
+    result = await db.execute(
+        select(User).where(
+            and_(
+                User.id == user_id,
+                User.organization_id == organization_id
+            )
+        )
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found in this organization",
+        )
+    
+    # Remove organization association
+    user.organization_id = None
+    user.role = "recruiter"  # Reset to default role
+    
+    await db.commit()
+    
+    return None
