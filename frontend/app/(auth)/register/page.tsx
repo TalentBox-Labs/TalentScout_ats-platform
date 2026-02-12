@@ -53,7 +53,8 @@ export default function RegisterPage() {
       const response = await apiClient.register({
         email: formData.email,
         password: formData.password,
-        full_name: formData.fullName,
+        fullName: formData.fullName,
+        organizationName: formData.organizationName,
       });
       
       // Store tokens

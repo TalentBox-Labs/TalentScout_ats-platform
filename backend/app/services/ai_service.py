@@ -139,19 +139,41 @@ class AIService:
     
     @staticmethod
     async def screen_candidate(
-        job_requirements: str,
-        candidate_profile: str
+        candidate_data: Dict[str, Any],
+        job_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         AI screening of candidate against job requirements.
         
         Args:
-            job_requirements: Job requirements and description
-            candidate_profile: Candidate's profile/resume
+            candidate_data: Candidate profile data
+            job_data: Job requirements data
             
         Returns:
             Screening results with score and insights
         """
+        # Format candidate profile
+        candidate_profile = f"""
+        Name: {candidate_data.get('name', 'N/A')}
+        Email: {candidate_data.get('email', 'N/A')}
+        Current Position: {candidate_data.get('current_position', 'N/A')}
+        Current Company: {candidate_data.get('current_company', 'N/A')}
+        Years of Experience: {candidate_data.get('years_of_experience', 'N/A')}
+        Location: {candidate_data.get('location', 'N/A')}
+        Summary: {candidate_data.get('summary', 'N/A')}
+        """
+        
+        # Format job requirements
+        job_requirements = f"""
+        Title: {job_data.get('title', 'N/A')}
+        Description: {job_data.get('description', 'N/A')}
+        Requirements: {job_data.get('requirements', 'N/A')}
+        Responsibilities: {job_data.get('responsibilities', 'N/A')}
+        Skills Required: {', '.join(job_data.get('skills_required', []))}
+        Experience Level: {job_data.get('experience_level', 'N/A')}
+        Location: {job_data.get('location', 'N/A')}
+        """
+        
         prompt = f"""
         Evaluate this candidate against the job requirements. Provide a structured assessment.
         

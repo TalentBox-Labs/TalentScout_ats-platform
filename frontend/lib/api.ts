@@ -63,9 +63,13 @@ class APIClient {
 
   // Auth methods
   async login(email: string, password: string) {
-    const response = await this.client.post('/api/v1/auth/login', {
-      email,
-      password,
+    const formData = new FormData()
+    formData.append('username', email)
+    formData.append('password', password)
+    const response = await this.client.post('/api/v1/auth/login', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     })
     this.setToken(response.data.access_token)
     if (typeof window !== 'undefined') {
@@ -77,11 +81,15 @@ class APIClient {
   async register(data: {
     email: string
     password: string
-    first_name: string
-    last_name: string
-    organization_name?: string
+    fullName: string
+    organizationName: string
   }) {
-    const response = await this.client.post('/api/v1/auth/register', data)
+    const response = await this.client.post('/api/v1/auth/register', {
+      email: data.email,
+      password: data.password,
+      full_name: data.fullName,
+      organization_name: data.organizationName,
+    })
     this.setToken(response.data.access_token)
     if (typeof window !== 'undefined') {
       localStorage.setItem('refresh_token', response.data.refresh_token)

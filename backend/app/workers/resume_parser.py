@@ -47,15 +47,27 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         if not candidate:
             raise ValueError(f"Candidate {candidate_id} not found")
         
-        # Parse resume file
+        # Download resume bytes
+        # For now, assume resume_url is a local file path
+        try:
+            with open(resume_url, 'rb') as f:
+                file_bytes = f.read()
+        except Exception as e:
+            raise ValueError(f"Failed to download/read resume file: {str(e)}")
+        
+        # Determine filename from URL/path
+        filename = resume_url.split('/')[-1] or f"resume.{content_type.split('/')[-1]}"
+        
+        # Parse resume file using synchronous parser
         parser_service = ParserService()
+        resume_text = parser_service.extract_text(file_bytes, filename)
         
-        # TODO: Download file from S3 or local storage
-        # For now, assume we have the file path
-        file_path = resume_url  # This should be actual file path
+        if not resume_text:
+            raise ValueError("Failed to extract text from resume")
         
-        # Extract text from resume
-        resume_text = await parser_service.extract_text(file_path, content_type)
+        # Use AI to parse resume and extract structured data
+        ai_service = AIService()
+        parsed_data = await ai_service.parse_resume_text(resume_text)
         
         # Use AI to parse resume and extract structured data
         ai_service = AIService()

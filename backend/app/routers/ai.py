@@ -186,11 +186,11 @@ async def match_candidates_to_job(
             current_company,
             location,
             years_of_experience,
-            1 - (resume_embedding <=> '{job.job_description_embedding}') as similarity_score
+            1 - (resume_embedding <=> '{job.embedding}') as similarity_score
         FROM candidates
         WHERE organization_id = '{current_user.organization_id}'
             AND resume_embedding IS NOT NULL
-        ORDER BY resume_embedding <=> '{job.
+        ORDER BY resume_embedding <=> '{job.embedding}'
         LIMIT {match_request.limit or 20}
     """
     
