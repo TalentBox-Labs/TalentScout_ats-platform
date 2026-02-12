@@ -7,12 +7,12 @@ import io
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import text
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.candidate import Candidate, Experience, Education, Skill
+from app.models.candidate import Candidate, CandidateExperience, CandidateEducation, CandidateSkill
 from app.middleware.auth import get_current_user
 from app.schemas.candidate import (
     CandidateCreate,
@@ -304,27 +304,31 @@ async def semantic_search_candidates(
     # Generate embedding for search query
     query_embedding = await ai_service.generate_embedding(search_request.query)
     
-    # Perform vector similarity search using pgvector
+    # Perform vector similarity search using pgvector with parameterized query
     # This uses the <=> operator for cosine distance
-    query = f"""
+    query = text("""
         SELECT 
             id,
             first_name,
             last_name,
             email,
-            current_position,
+            headline as current_position,
             current_company,
             location,
             resume_url,
-            1 - (resume_embedding <=> '{query_embedding}') as similarity_score
+            1 - (resume_embedding <=> :query_embedding) as similarity_score
         FROM candidates
-        WHERE organization_id = '{current_user.organization_id}'
+        WHERE organization_id = :org_id
             AND resume_embedding IS NOT NULL
-        ORDER BY resume_embedding <=> '{query_embedding}'
-        LIMIT {search_request.limit or 20}
-    """
+        ORDER BY resume_embedding <=> :query_embedding
+        LIMIT :limit_val
+    """)
     
-    result = await db.execute(query)
+    result = await db.execute(query, {
+        "query_embedding": query_embedding,
+        "org_id": str(current_user.organization_id),
+        "limit_val": search_request.limit or 20
+    })
     candidates = result.fetchall()
     
     # Format results

@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.application import Application, Activity, Note, Score
+from app.models.application import Application, ApplicationActivity, ApplicationNote, ApplicationScore
 from app.models.candidate import Candidate
 from app.models.job import Job
 from app.middleware.auth import get_current_user
@@ -144,7 +144,7 @@ async def create_application(
     new_application = Application(
         candidate_id=app_data.candidate_id,
         job_id=app_data.job_id,
-        stage_id=first_stage.id if first_stage else None,
+        current_stage=first_stage.id if first_stage else None,
         status="active",
         source=app_data.source or "manual",
         cover_letter=app_data.cover_letter,

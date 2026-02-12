@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.assessment import ScreeningTemplate, ScreeningQuestion, Assessment, AssessmentResponse
+from app.models.assessment import ScreeningTemplate, Assessment, AssessmentResponse, AssessmentStatus
 from app.models.application import Application
 from app.models.job import Job
 from app.middleware.auth import get_current_user
@@ -210,7 +210,8 @@ async def create_assessment(
     new_assessment = Assessment(
         application_id=assessment_data.application_id,
         template_id=assessment_data.template_id,
-        status="pending",
+        title=assessment_data.title or "Assessment",
+        status=AssessmentStatus.PENDING,
     )
     
     db.add(new_assessment)

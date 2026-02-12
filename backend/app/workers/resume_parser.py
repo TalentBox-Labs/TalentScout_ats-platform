@@ -7,7 +7,7 @@ import asyncio
 
 from app.config import settings
 from app.database import async_session_maker
-from app.models.candidate import Candidate, Experience, Education, Skill
+from app.models.candidate import Candidate, CandidateExperience, CandidateEducation, CandidateSkill
 from app.services.parser_service import ParserService
 from app.services.ai_service import AIService
 
@@ -69,10 +69,6 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         ai_service = AIService()
         parsed_data = await ai_service.parse_resume_text(resume_text)
         
-        # Use AI to parse resume and extract structured data
-        ai_service = AIService()
-        parsed_data = await ai_service.parse_resume_text(resume_text)
-        
         # Update candidate with parsed data
         if parsed_data.get("summary"):
             candidate.summary = parsed_data["summary"]
@@ -89,10 +85,10 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         
         # Add experience entries
         for exp in parsed_data.get("experience", []):
-            experience = Experience(
+            experience = CandidateExperience(
                 candidate_id=candidate.id,
                 company=exp["company"],
-                position=exp["position"],
+                title=exp["position"],
                 start_date=exp.get("start_date"),
                 end_date=exp.get("end_date"),
                 is_current=exp.get("is_current", False),
@@ -102,7 +98,7 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         
         # Add education entries
         for edu in parsed_data.get("education", []):
-            education = Education(
+            education = CandidateEducation(
                 candidate_id=candidate.id,
                 institution=edu["institution"],
                 degree=edu["degree"],
@@ -114,7 +110,7 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         
         # Add skills
         for skill_name in parsed_data.get("skills", []):
-            skill = Skill(
+            skill = CandidateSkill(
                 candidate_id=candidate.id,
                 name=skill_name,
             )
