@@ -75,7 +75,7 @@ def upgrade() -> None:
         sa.Column('status', sa.String(), nullable=False),
         sa.Column('organization_id', sa.UUID(), nullable=False),
         sa.Column('hiring_manager_id', sa.UUID(), nullable=True),
-        sa.Column('embeddings', Vector(1536), nullable=True),
+        sa.Column('embedding', Vector(1536), nullable=True),
         sa.Column('posted_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('closes_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
@@ -84,7 +84,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_jobs_embeddings', 'jobs', ['embeddings'], postgresql_using='ivfflat')
+    op.create_index('idx_jobs_embedding', 'jobs', ['embedding'], postgresql_using='ivfflat')
     op.create_index(op.f('ix_jobs_organization_id'), 'jobs', ['organization_id'])
     op.create_index(op.f('ix_jobs_status'), 'jobs', ['status'])
     op.create_index(op.f('ix_jobs_title'), 'jobs', ['title'])

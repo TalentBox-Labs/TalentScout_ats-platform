@@ -64,7 +64,7 @@ async def _generate_job_embedding_async(job_id: str):
         embedding = await ai_service.generate_embedding(embedding_text)
         
         # Store embedding in database
-        job.job_description_embedding = embedding
+        job.embedding = embedding
         await db.commit()
         
         print(f"Generated embedding for job {job_id}")

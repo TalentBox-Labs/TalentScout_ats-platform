@@ -52,14 +52,25 @@ async def register(
             detail="Email already registered",
         )
     
+    # Create organization if it doesn't exist
+    from app.models.organization import Organization
+    result = await db.execute(select(Organization).where(Organization.name == user_data.organization_name))
+    organization = result.scalar_one_or_none()
+    
+    if not organization:
+        organization = Organization(name=user_data.organization_name)
+        db.add(organization)
+        await db.commit()
+        await db.refresh(organization)
+    
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         email=user_data.email,
         full_name=user_data.full_name,
         hashed_password=hashed_password,
-        organization_id=user_data.organization_id,
-        role=user_data.role or "recruiter",
+        organization_id=organization.id,
+        role="recruiter",
         is_active=True,
     )
     

@@ -169,7 +169,7 @@ async def match_candidates_to_job(
         )
     
     # Use job embedding to find similar candidates
-    if not job.job_description_embedding:
+    if not job.embedding:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Job embedding not generated yet. Please wait.",
@@ -190,7 +190,7 @@ async def match_candidates_to_job(
         FROM candidates
         WHERE organization_id = '{current_user.organization_id}'
             AND resume_embedding IS NOT NULL
-        ORDER BY resume_embedding <=> '{job.job_description_embedding}'
+        ORDER BY resume_embedding <=> '{job.
         LIMIT {match_request.limit or 20}
     """
     
