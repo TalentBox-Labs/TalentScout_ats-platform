@@ -71,21 +71,20 @@ async def get_analytics(
 
     # Applications by stage
     stages_query = select(
-        Application.current_stage,
+        JobStage.name,
         func.count(Application.id).label('count')
+    ).join(
+        Application, Application.current_stage == JobStage.id
     ).where(
         Application.organization_id == current_user.organization_id
-    ).group_by(Application.current_stage)
+    ).group_by(JobStage.name)
 
     result = await db.execute(stages_query)
-    stage_counts = {row.current_stage or 'applied': row.count for row in result}
+    stage_counts = {row.name: row.count for row in result}
 
     applications_by_stage = [
-        {"name": "Applied", "value": stage_counts.get('applied', 0), "color": "#3B82F6"},
-        {"name": "Screening", "value": stage_counts.get('screening', 0), "color": "#F59E0B"},
-        {"name": "Interview", "value": stage_counts.get('interview', 0), "color": "#8B5CF6"},
-        {"name": "Offer", "value": stage_counts.get('offer', 0), "color": "#10B981"},
-        {"name": "Hired", "value": stage_counts.get('hired', 0), "color": "#059669"},
+        {"name": stage_name, "value": count, "color": "#3B82F6"}
+        for stage_name, count in stage_counts.items()
     ]
 
     # Top job postings

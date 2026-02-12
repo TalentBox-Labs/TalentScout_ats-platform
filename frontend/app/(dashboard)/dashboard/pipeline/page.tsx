@@ -20,14 +20,26 @@ interface Application {
   };
   job: {
     title: string;
+    stages?: Array<{
+      id: string;
+      name: string;
+      order: number;
+    }>;
   };
   current_stage: string;
   status: string;
   ai_match_score?: number;
 }
 
+interface JobStage {
+  id: string;
+  name: string;
+  order: number;
+}
+
 export default function PipelinePage() {
   const [applications, setApplications] = useState<Application[]>([]);
+  const [stages, setStages] = useState<JobStage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +50,22 @@ export default function PipelinePage() {
     try {
       const data = await apiClient.get('/api/v1/applications');
       setApplications(data);
+
+      // Extract unique stages from applications' jobs
+      const stageMap = new Map<string, JobStage>();
+      data.forEach((app: Application) => {
+        if (app.job.stages) {
+          app.job.stages.forEach((stage: JobStage) => {
+            if (!stageMap.has(stage.id)) {
+              stageMap.set(stage.id, stage);
+            }
+          });
+        }
+      });
+
+      // Sort stages by order and convert to array
+      const sortedStages = Array.from(stageMap.values()).sort((a, b) => a.order - b.order);
+      setStages(sortedStages);
     } catch (error) {
       console.error('Failed to load applications:', error);
     } finally {
@@ -45,21 +73,39 @@ export default function PipelinePage() {
     }
   };
 
-  const stages = [
-    { id: 'applied', name: 'Applied', color: 'bg-blue-100 text-blue-800' },
-    { id: 'screening', name: 'Screening', color: 'bg-yellow-100 text-yellow-800' },
-    { id: 'interview', name: 'Interview', color: 'bg-purple-100 text-purple-800' },
-    { id: 'offer', name: 'Offer', color: 'bg-green-100 text-green-800' },
-    { id: 'hired', name: 'Hired', color: 'bg-emerald-100 text-emerald-800' },
-  ];
-
   const getApplicationsByStage = (stageId: string) => {
     return applications.filter(app => app.current_stage === stageId);
   };
 
-  const onDragEnd = (result: any) => {
-    // TODO: Implement drag and drop functionality
-    console.log('Drag ended:', result);
+  const onDragEnd = async (result: any) => {
+    const { destination, source, draggableId } = result;
+
+    // Dropped outside a droppable area
+    if (!destination) {
+      return;
+    }
+
+    // Dropped in the same position
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      return;
+    }
+
+    const newStageId = destination.droppableId;
+
+    try {
+      // Update the application stage via API
+      await apiClient.updateApplicationStage(draggableId, newStageId);
+
+      // Update local state
+      setApplications(prev => prev.map(app =>
+        app.id === draggableId
+          ? { ...app, current_stage: newStageId }
+          : app
+      ));
+    } catch (error) {
+      console.error('Failed to update application stage:', error);
+      // TODO: Show error toast
+    }
   };
 
   if (loading) {
@@ -82,7 +128,7 @@ export default function PipelinePage() {
             <div key={stage.id} className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">{stage.name}</h3>
-                <Badge className={stage.color}>
+                <Badge className="bg-gray-100 text-gray-800">
                   {getApplicationsByStage(stage.id).length}
                 </Badge>
               </div>
@@ -92,7 +138,7 @@ export default function PipelinePage() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="space-y-3 min-h-[400px]"
+                    className="space-y-3 min-h-[400px] p-4 border-2 border-dashed border-gray-200 rounded-lg"
                   >
                     {getApplicationsByStage(stage.id).map((application, index) => (
                       <Draggable

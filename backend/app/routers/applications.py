@@ -52,7 +52,7 @@ async def list_applications(
         .where(Job.organization_id == current_user.organization_id)
         .options(
             selectinload(Application.candidate),
-            selectinload(Application.job),
+            selectinload(Application.job).selectinload(Job.stages),
             selectinload(Application.current_stage_obj)
         )
     )

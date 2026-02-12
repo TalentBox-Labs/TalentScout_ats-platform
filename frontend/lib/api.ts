@@ -180,7 +180,7 @@ class APIClient {
 
   async updateApplicationStage(id: string, stageId: string) {
     const response = await this.client.patch(`/api/v1/applications/${id}/stage`, {
-      stage_id: stageId,
+      current_stage: stageId,
     })
     return response.data
   }
