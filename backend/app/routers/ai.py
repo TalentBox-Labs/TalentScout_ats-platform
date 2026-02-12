@@ -233,8 +233,8 @@ async def generate_email(
     
     # Generate email based on template type
     email_content = await ai_service.generate_email(
-        template_type=email_request.template_type,
         context=email_request.context,
+        email_type=email_request.template_type,
         tone=email_request.tone,
     )
     

@@ -275,22 +275,105 @@ class AIService:
             return {"subject": "", "body": ""}
     
     @staticmethod
-    async def generate_interview_questions(
-        job_description: str,
-        num_questions: int = 5
-    ) -> List[str]:
+    async def generate_job_description(
+        title: str,
+        department: Optional[str] = None,
+        experience_level: Optional[str] = None,
+        key_skills: Optional[List[str]] = None,
+        additional_context: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Generate interview questions based on job description.
+        Generate a comprehensive job description using AI.
         
         Args:
-            job_description: Job description and requirements
-            num_questions: Number of questions to generate
+            title: Job title
+            department: Department (optional)
+            experience_level: Experience level (optional)
+            key_skills: Key skills required (optional)
+            additional_context: Additional context (optional)
+            
+        Returns:
+            Dict with title, description, requirements, responsibilities, suggested_skills
+        """
+        skills_text = ", ".join(key_skills) if key_skills else "relevant skills for the role"
+        
+        prompt = f"""
+        Generate a comprehensive job description for the following role:
+        
+        Title: {title}
+        Department: {department or 'Not specified'}
+        Experience Level: {experience_level or 'Not specified'}
+        Key Skills: {skills_text}
+        {f"Additional Context: {additional_context}" if additional_context else ""}
+        
+        Return a JSON object with:
+        {{
+            "title": "Full job title",
+            "description": "Detailed job description (3-4 paragraphs)",
+            "requirements": "Key requirements and qualifications",
+            "responsibilities": "Main responsibilities and duties",
+            "suggested_skills": ["skill1", "skill2", "skill3", ...]
+        }}
+        """
+        
+        try:
+            response = await client.chat.completions.create(
+                model=settings.openai_model,
+                messages=[
+                    {"role": "system", "content": "You are an expert HR professional writing job descriptions."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.7,
+            )
+            
+            import json
+            job_desc = json.loads(response.choices[0].message.content)
+            return job_desc
+            
+        except Exception as e:
+            print(f"Error generating job description: {str(e)}")
+            return {
+                "title": title,
+                "description": "",
+                "requirements": "",
+                "responsibilities": "",
+                "suggested_skills": key_skills or []
+            }
+    
+    @staticmethod
+    async def generate_interview_questions(
+        job_context: Dict[str, Any],
+        question_types: Optional[List[str]] = None,
+        count: int = 5
+    ) -> List[str]:
+        """
+        Generate interview questions based on job context.
+        
+        Args:
+            job_context: Job details (title, description, requirements, etc.)
+            question_types: Types of questions to generate (optional)
+            count: Number of questions to generate
             
         Returns:
             List of interview questions
         """
+        # Format job context
+        job_description = f"""
+        Title: {job_context.get('title', 'N/A')}
+        Description: {job_context.get('description', 'N/A')}
+        Requirements: {job_context.get('requirements', 'N/A')}
+        Experience Level: {job_context.get('experience_level', 'N/A')}
+        """
+        
+        # Include question types if specified
+        type_instruction = ""
+        if question_types:
+            type_instruction = f"Focus on these types of questions: {', '.join(question_types)}. "
+        
         prompt = f"""
-        Generate {num_questions} insightful interview questions for this role:
+        Generate {count} insightful interview questions for this role.
+        {type_instruction}
         
         {job_description}
         
