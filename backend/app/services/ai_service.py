@@ -1,11 +1,10 @@
 """AI service for resume parsing, matching, and screening."""
 from typing import Dict, Any, List, Optional
-import openai
-from openai import OpenAI
+from openai import AsyncOpenAI
 from app.config import settings
 
-# Initialize OpenAI client
-client = OpenAI(api_key=settings.openai_api_key)
+# Initialize AsyncOpenAI client
+client = AsyncOpenAI(api_key=settings.openai_api_key)
 
 
 class AIService:
@@ -58,7 +57,7 @@ class AIService:
         """
         
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": "You are an expert resume parser. Extract structured data from resumes accurately."},
@@ -99,7 +98,7 @@ class AIService:
         """
         
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": "You are a professional recruiter writing candidate summaries."},
@@ -127,7 +126,7 @@ class AIService:
             Embedding vector
         """
         try:
-            response = client.embeddings.create(
+            response = await client.embeddings.create(
                 model=settings.openai_embedding_model,
                 input=text
             )
@@ -174,7 +173,7 @@ class AIService:
         """
         
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": "You are an expert technical recruiter evaluating candidate fit."},
@@ -235,7 +234,7 @@ class AIService:
         """
         
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": "You are a professional recruiter writing candidate emails."},
@@ -278,7 +277,7 @@ class AIService:
         """
         
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
                     {"role": "system", "content": "You are an experienced hiring manager creating interview questions."},

@@ -3,18 +3,19 @@ import './App.css'
 
 function App() {
   const [apiStatus, setApiStatus] = useState<string>('Checking...')
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     // Check backend API health
-    fetch('http://localhost:3000/health')
+    fetch(`${backendUrl}/health`)
       .then(res => res.json())
       .then(data => {
-        setApiStatus(`✅ ${data.message}`)
+        setApiStatus(`✅ ${data.status || data.message}`)
       })
       .catch(() => {
         setApiStatus('❌ Backend API is not running')
       })
-  }, [])
+  }, [backendUrl])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -45,8 +46,8 @@ function App() {
                 
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
                   <h3 className="text-2xl font-bold mb-2">Backend</h3>
-                  <p className="text-green-100">Node.js + Express + TypeScript</p>
-                  <p className="text-sm text-green-200 mt-4">Running on port 3000</p>
+                  <p className="text-green-100">Python + FastAPI</p>
+                  <p className="text-sm text-green-200 mt-4">Running on port 8000</p>
                 </div>
               </div>
 

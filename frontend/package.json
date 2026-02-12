@@ -4,8 +4,11 @@
   "description": "Frontend for ATS Platform",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "next dev",
+    "dev:vite": "vite",
+    "build": "next build",
+    "build:vite": "tsc && vite build",
+    "start": "next start",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
@@ -15,9 +18,14 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "next": "^14.1.0",
     "react-router-dom": "^6.21.1",
     "axios": "^1.6.5",
-    "zustand": "^4.4.7"
+    "zustand": "^4.4.7",
+    "lucide-react": "^0.294.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.47",
