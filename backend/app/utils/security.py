@@ -1,8 +1,10 @@
 """Security utilities for authentication and authorization."""
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
 from app.config import settings
 
 # Password hashing context
@@ -12,11 +14,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a plain password against a hashed password.
-    
+
     Args:
         plain_password: Plain text password
         hashed_password: Hashed password
-        
+
     Returns:
         True if password matches, False otherwise
     """
@@ -26,10 +28,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     """
     Hash a password.
-    
+
     Args:
         password: Plain text password
-        
+
     Returns:
         Hashed password
     """
@@ -39,53 +41,75 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a JWT access token.
-    
+
     Args:
         data: Data to encode in the token
         expires_delta: Optional expiration time delta
-        
+
     Returns:
         Encoded JWT token
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    
+
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    
+
     return encoded_jwt
 
 
 def create_refresh_token(data: Dict[str, Any]) -> str:
     """
     Create a JWT refresh token.
-    
+
     Args:
         data: Data to encode in the token
-        
+
     Returns:
         Encoded JWT token
     """
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
-    
+
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-    
+
+    return encoded_jwt
+
+
+def create_password_reset_token(data: Dict[str, Any], expires_minutes: int = 60) -> str:
+    """
+    Create a JWT password reset token.
+
+    This token is short-lived and scoped specifically for password reset flows.
+
+    Args:
+        data: Data to encode in the token
+        expires_minutes: Expiration time in minutes
+
+    Returns:
+        Encoded JWT token
+    """
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=expires_minutes)
+
+    to_encode.update({"exp": expire, "type": "password_reset"})
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+
     return encoded_jwt
 
 
 def decode_token(token: str) -> Optional[Dict[str, Any]]:
     """
     Decode and verify a JWT token.
-    
+
     Args:
         token: JWT token to decode
-        
+
     Returns:
         Decoded token payload or None if invalid
     """
@@ -99,12 +123,13 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 def generate_token(length: int = 32) -> str:
     """
     Generate a random token.
-    
+
     Args:
         length: Token length
-        
+
     Returns:
         Random token string
     """
     import secrets
+
     return secrets.token_urlsafe(length)

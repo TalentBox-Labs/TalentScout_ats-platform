@@ -54,6 +54,19 @@ class APIClient {
     }
   }
 
+  private setRefreshToken(token: string): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('refresh_token', token)
+    }
+  }
+
+  private getRefreshToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('refresh_token')
+    }
+    return null
+  }
+
   private clearToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token')
@@ -68,8 +81,8 @@ class APIClient {
       password,
     })
     this.setToken(response.data.access_token)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('refresh_token', response.data.refresh_token)
+    if (response.data.refresh_token) {
+      this.setRefreshToken(response.data.refresh_token)
     }
     return response.data
   }
@@ -83,9 +96,42 @@ class APIClient {
   }) {
     const response = await this.client.post('/api/v1/auth/register', data)
     this.setToken(response.data.access_token)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('refresh_token', response.data.refresh_token)
+    if (response.data.refresh_token) {
+      this.setRefreshToken(response.data.refresh_token)
     }
+    return response.data
+  }
+
+  async refreshAccessToken() {
+    const refreshToken = this.getRefreshToken()
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await this.client.post('/api/v1/auth/refresh', {
+      refresh_token: refreshToken,
+    })
+    this.setToken(response.data.access_token)
+    return response.data
+  }
+
+  async forgotPassword(email: string) {
+    const response = await this.client.post('/api/v1/auth/forgot-password', {
+      email,
+    })
+    return response.data
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const response = await this.client.post('/api/v1/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    })
+    return response.data
+  }
+
+  async getCurrentUser() {
+    const response = await this.client.get('/api/v1/auth/me')
     return response.data
   }
 
