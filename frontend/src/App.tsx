@@ -10,7 +10,7 @@ function App() {
     fetch(`${backendUrl}/health`)
       .then(res => res.json())
       .then(data => {
-        setApiStatus(`✅ ${data.status || data.message}`)
+        setApiStatus(`✅ ${data.app || 'Backend'} v${data.version} (${data.environment})`)
       })
       .catch(() => {
         setApiStatus('❌ Backend API is not running')

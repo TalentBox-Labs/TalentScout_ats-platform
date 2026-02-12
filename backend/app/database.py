@@ -1,4 +1,6 @@
 """Database connection and session management."""
+import subprocess
+import sys
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -50,9 +52,19 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database - create all tables."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Initialize database using Alembic migrations."""
+    try:
+        # Run Alembic migrations to create/update database schema
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print(f"Database migrations completed successfully: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error running database migrations: {e.stderr}")
+        raise
 
 
 async def close_db() -> None:
