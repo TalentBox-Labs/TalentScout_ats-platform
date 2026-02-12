@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import text
 
 from app.database import get_db
 from app.models.user import User
@@ -132,10 +132,11 @@ async def re_run_ai_screening(
     screening_result = await ai_service.screen_candidate(candidate_data, job_data)
     
     # Update application
-    application.ai_match_score = screening_result.get("match_score")
-    application.ai_insights = screening_result.get("insights")
+    application.ai_match_score = screening_result.get("fit_score")
+    application.ai_insights = screening_result.get("summary")
     application.ai_strengths = screening_result.get("strengths", [])
     application.ai_concerns = screening_result.get("concerns", [])
+    application.ai_recommendation = screening_result.get("recommendation")
     
     await db.commit()
     
@@ -175,26 +176,30 @@ async def match_candidates_to_job(
             detail="Job embedding not generated yet. Please wait.",
         )
     
-    # Perform vector similarity search
-    query = f"""
-        SELECT 
+    # Perform vector similarity search with parameterized query
+    query = text("""
+        SELECT
             id,
             first_name,
             last_name,
             email,
-            current_position,
+            headline as current_position,
             current_company,
             location,
-            years_of_experience,
-            1 - (resume_embedding <=> '{job.embedding}') as similarity_score
+            total_experience_years as years_of_experience,
+            1 - (resume_embedding <=> :job_embedding::vector) as similarity_score
         FROM candidates
-        WHERE organization_id = '{current_user.organization_id}'
+        WHERE organization_id = :org_id
             AND resume_embedding IS NOT NULL
-        ORDER BY resume_embedding <=> '{job.embedding}'
-        LIMIT {match_request.limit or 20}
-    """
-    
-    result = await db.execute(query)
+        ORDER BY resume_embedding <=> :job_embedding::vector
+        LIMIT :limit_val
+    """)
+
+    result = await db.execute(query, {
+        "job_embedding": job.embedding,
+        "org_id": str(current_user.organization_id),
+        "limit_val": match_request.limit or 20
+    })
     candidates = result.fetchall()
     
     # Format results

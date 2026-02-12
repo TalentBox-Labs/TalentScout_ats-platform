@@ -248,16 +248,30 @@ async def upload_resume(
     # Read file content
     file_content = await file.read()
     
-    # TODO: Upload to S3
-    # s3_url = await upload_to_s3(file_content, file.filename)
+    # Create uploads directory if it doesn't exist
+    import os
+    upload_dir = f"uploads/{candidate_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Save file locally
+    file_path = f"{upload_dir}/{file.filename}"
+    with open(file_path, "wb") as f:
+        f.write(file_content)
+    
+    # TODO: Upload to S3 instead of local storage
+    # import boto3
+    # s3_client = boto3.client('s3')
+    # s3_key = f"candidates/{candidate_id}/{file.filename}"
+    # s3_client.upload_fileobj(file.file, settings.s3_bucket, s3_key)
+    # s3_url = f"https://{settings.s3_bucket}.s3.amazonaws.com/{s3_key}"
     # candidate.resume_url = s3_url
     
-    # For now, store filename
-    candidate.resume_url = f"uploads/{candidate_id}/{file.filename}"
+    # For now, store local file path
+    candidate.resume_url = file_path
     await db.commit()
     
     # Queue resume parsing in background
-    parse_resume_task.delay(str(candidate_id), candidate.resume_url, file.content_type)
+    parse_resume_task.delay(str(candidate_id), file_path, file.content_type)
     
     return {
         "message": "Resume uploaded successfully. Parsing in progress.",

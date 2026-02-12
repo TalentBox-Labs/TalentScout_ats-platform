@@ -94,10 +94,11 @@ async def _screen_candidate_async(application_id: str):
         screening_result = await ai_service.screen_candidate(candidate_data, job_data)
         
         # Update application with AI insights
-        application.ai_match_score = screening_result.get("match_score")
-        application.ai_insights = screening_result.get("insights")
+        application.ai_match_score = screening_result.get("fit_score")
+        application.ai_insights = screening_result.get("summary")
         application.ai_strengths = screening_result.get("strengths", [])
         application.ai_concerns = screening_result.get("concerns", [])
+        application.ai_recommendation = screening_result.get("recommendation")
         
         # Create activity log
         activity = ApplicationActivity(

@@ -3,21 +3,18 @@ Email service for sending transactional emails.
 """
 from typing import Optional, Dict, Any
 import asyncio
-
-# TODO: Import actual email provider SDK (SendGrid, Resend, etc.)
-# from sendgrid import SendGridAPIClient
-# from sendgrid.helpers.mail import Mail
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+from app.config import settings
 
 
 class EmailService:
     """
-    Service for sending emails using external email provider.
+    Service for sending emails using SendGrid.
     """
     
     def __init__(self):
-        # TODO: Initialize email client with API key from settings
-        # self.client = SendGridAPIClient(api_key=settings.sendgrid_api_key)
-        pass
+        self.client = SendGridAPIClient(api_key=settings.sendgrid_api_key)
     
     async def send_email_async(
         self,
@@ -42,35 +39,33 @@ class EmailService:
         Returns:
             Dict with status and message_id
         """
-        # TODO: Implement actual email sending
-        # This is a placeholder implementation
-        
-        print(f"Sending email to {to_email}")
-        print(f"Subject: {subject}")
-        print(f"Body: {body[:100]}...")
-        
-        # Simulate async email sending
-        await asyncio.sleep(0.1)
-        
-        # TODO: Actual SendGrid implementation
-        # message = Mail(
-        #     from_email=from_email or settings.default_from_email,
-        #     to_emails=to_email,
-        #     subject=subject,
-        #     html_content=body
-        # )
-        # 
-        # response = self.client.send(message)
-        # 
-        # if communication_id:
-        #     # Update communication record with sent status
-        #     pass
-        
-        return {
-            "status": "sent",
-            "message_id": f"mock_message_id_{communication_id}",
-            "to": to_email,
-        }
+        try:
+            # Create mail object
+            message = Mail(
+                from_email=from_email or settings.from_email,
+                to_emails=to_email,
+                subject=subject,
+                html_content=body
+            )
+            
+            if from_name:
+                message.from_email.name = from_name
+            
+            # Send email
+            response = self.client.send(message)
+            
+            return {
+                "status": "sent",
+                "message_id": response.headers.get('X-Message-Id'),
+                "status_code": response.status_code
+            }
+            
+        except Exception as e:
+            print(f"Email sending failed: {str(e)}")
+            return {
+                "status": "failed",
+                "error": str(e)
+            }
     
     async def send_bulk_email(
         self,

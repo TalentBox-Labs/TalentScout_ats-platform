@@ -65,7 +65,30 @@ class ParserService:
             return ""
     
     @staticmethod
-    def extract_text(file_content: bytes, filename: str) -> Optional[str]:
+    async def extract_text_from_bytes(file_content: bytes, content_type: str) -> Optional[str]:
+        """
+        Extract text from resume file based on content type.
+
+        Args:
+            file_content: File content as bytes
+            content_type: MIME content type
+
+        Returns:
+            Extracted text or None if unsupported
+        """
+        if content_type == "application/pdf":
+            return ParserService.extract_text_from_pdf(file_content)
+        elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            return ParserService.extract_text_from_docx(file_content)
+        elif content_type == "text/plain":
+            try:
+                return file_content.decode('utf-8')
+            except Exception as e:
+                print(f"Text file decoding failed: {str(e)}")
+                return None
+        else:
+            print(f"Unsupported content type: {content_type}")
+            return None
         """
         Extract text from resume file based on file type.
         
