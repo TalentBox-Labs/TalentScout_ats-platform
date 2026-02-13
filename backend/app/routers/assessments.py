@@ -317,24 +317,24 @@ async def score_assessment(
     
     for response in assessment.responses:
         # Find corresponding question
-        question = next((q for q in assessment.template.questions if q.id == response.question_id), None)
+        question = next((q for q in assessment.template.questions if q['id'] == response.question_id), None)
         
         if question:
-            max_score += question.points or 0
+            max_score += question.get('points', 0)
             
-            if question.question_type == "multiple_choice" and question.correct_answer:
+            if question.get('question_type') == "multiple_choice" and question.get('correct_answer'):
                 # Auto-score multiple choice
-                if response.response_text == question.correct_answer:
-                    response.score = question.points
-                    total_score += question.points
+                if response.response_text == question.get('correct_answer'):
+                    response.score = question.get('points', 0)
+                    total_score += question.get('points', 0)
                 else:
                     response.score = 0
             else:
                 # Use AI to score open-ended questions
                 score_result = await ai_service.score_assessment_response(
-                    question=question.question_text,
+                    question=question.get('question_text', ''),
                     response=response.response_text,
-                    max_points=question.points or 10,
+                    max_points=question.get('points', 10),
                 )
                 response.score = score_result.get("score", 0)
                 response.feedback = score_result.get("feedback")

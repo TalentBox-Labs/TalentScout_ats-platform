@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.application import Application, ApplicationActivity, ApplicationNote, ApplicationScore, ActivityType
 from app.models.candidate import Candidate
-from app.models.job import Job
+from app.models.job import Job, JobStage
 from app.middleware.auth import get_current_user
 from app.schemas.application import (
     ApplicationCreate,
@@ -136,9 +136,15 @@ async def create_application(
     
     # Get the first stage of the job (Applied)
     result = await db.execute(
-        select(Job.stages).where(Job.id == app_data.job_id).order_by(Job.stages.order)
+        select(JobStage).where(JobStage.job_id == app_data.job_id).order_by(JobStage.order)
     )
-    first_stage = result.scalars().first()
+    first_stage = result.scalar_one_or_none()
+    
+    if not first_stage:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job has no pipeline stages configured",
+        )
     
     # Create application
     new_application = Application(
