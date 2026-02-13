@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     
     # CORS
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173"
     allowed_hosts: str = "*"
     
     # OpenAI
@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     from_email: str = "noreply@atsplatform.com"
     from_name: str = "ATS Platform"
+    frontend_url: str = "http://localhost:5173"
     
     # Integrations
     linkedin_client_id: str = ""

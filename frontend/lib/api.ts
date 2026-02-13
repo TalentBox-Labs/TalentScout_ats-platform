@@ -8,9 +8,6 @@ class APIClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     })
 
     // Request interceptor to add auth token
@@ -76,12 +73,12 @@ class APIClient {
 
   // Auth methods
   async login(email: string, password: string) {
-    const formData = new FormData()
-    formData.append('username', email)
-    formData.append('password', password)
-    const response = await this.client.post('/api/v1/auth/login', formData, {
+    const params = new URLSearchParams()
+    params.append('username', email)
+    params.append('password', password)
+    const response = await this.client.post('/api/v1/auth/login', params, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     })
     this.setToken(response.data.access_token)
@@ -104,6 +101,10 @@ class APIClient {
       first_name: data.first_name,
       last_name: data.last_name,
       organization_name: data.organization_name,
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
     this.setToken(response.data.access_token)
     if (response.data.refresh_token) {

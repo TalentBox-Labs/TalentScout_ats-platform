@@ -1,31 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { apiClient } from '../../../lib/api'
 import { Button } from '@/components/ui/button'
 
-export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+    setMessage(null)
     setLoading(true)
     try {
-      await apiClient.login(email, password)
-      const next = searchParams.get('next') || '/dashboard'
-      router.push(next)
+      await apiClient.forgotPassword(email)
+      setMessage('If an account with that email exists, we have sent you a password reset link.')
     } catch (err: any) {
       const message =
         err?.response?.data?.detail ||
-        'Unable to sign in. Please check your credentials and try again.'
+        'An error occurred. Please try again.'
       setError(message)
     } finally {
       setLoading(false)
@@ -35,9 +32,9 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Reset Password</h1>
         <p className="text-sm text-muted-foreground">
-          Access your ATS dashboard with your account.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
       </div>
 
@@ -56,23 +53,14 @@ export default function LoginPage() {
             className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
-        </div>
         {error && (
           <p className="text-sm text-destructive" role="alert">
             {error}
+          </p>
+        )}
+        {message && (
+          <p className="text-sm text-green-600" role="alert">
+            {message}
           </p>
         )}
         <Button
@@ -80,23 +68,16 @@ export default function LoginPage() {
           className="mt-2 w-full"
           disabled={loading}
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? 'Sending...' : 'Send Reset Link'}
         </Button>
       </form>
 
-      <div className="text-center">
-        <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
-          Forgot your password?
-        </Link>
-      </div>
-
       <p className="text-center text-xs text-muted-foreground">
-        Don&apos;t have an account?{' '}
-        <Link href="/auth/register" className="text-primary hover:underline">
-          Create one
+        Remember your password?{' '}
+        <Link href="/auth/login" className="text-primary hover:underline">
+          Sign in
         </Link>
       </p>
     </div>
   )
 }
-

@@ -262,14 +262,26 @@ async def forgot_password(
     """
     Request password reset.
     """
+    from app.services.email_service import EmailService
+    
     # Find user by email
     result = await db.execute(select(User).where(User.email == request.email))
     user = result.scalar_one_or_none()
     
     if user:
-        # In a real implementation, send email with reset token
-        # For now, just return success to avoid email enumeration
-        pass
+        # Create reset token (expires in 1 hour)
+        reset_token = create_access_token(
+            data={"sub": str(user.id), "type": "password_reset"},
+            expires_delta=timedelta(hours=1)
+        )
+        
+        # Send email
+        email_service = EmailService()
+        email_result = await email_service.send_password_reset_email(user.email, reset_token)
+        
+        if email_result["status"] == "error":
+            # Log error but don't fail the request to avoid email enumeration
+            pass
     
     return {"message": "If the email exists, a password reset link has been sent"}
 
@@ -286,8 +298,9 @@ async def reset_password(
         # Decode and validate token
         payload = decode_token(request.token)
         user_id = payload.get("sub")
+        token_type = payload.get("type")
         
-        if not user_id:
+        if not user_id or token_type != "password_reset":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid token",
