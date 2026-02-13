@@ -142,7 +142,11 @@ async def get_candidate(
     )
     candidate = result.scalar_one_or_none()
     
-
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate not found",
+        )
     
     return candidate
 

@@ -149,11 +149,11 @@ async def match_candidates(
             c.current_company,
             c.location,
             c.resume_url,
-            1 - (c.resume_embedding <=> :job_embedding) as similarity_score
+            1 - (c.resume_embedding <=> :job_embedding::vector) as similarity_score
         FROM candidates c
         WHERE c.organization_id = :org_id
             AND c.resume_embedding IS NOT NULL
-        ORDER BY c.resume_embedding <=> :job_embedding
+        ORDER BY c.resume_embedding <=> :job_embedding::vector
         LIMIT :limit_val
     """)
     

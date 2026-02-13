@@ -95,19 +95,33 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         ai_service = AIService()
         parsed_data = await ai_service.parse_resume_text(resume_text)
         
-        # Update candidate with parsed data
+        # Normalize parsed_data structure
+        contact = parsed_data.get("contact", {})
+        candidate.email = contact.get("email") or candidate.email
+        candidate.phone = contact.get("phone")
+        candidate.location = contact.get("location")
+        
+        # Extract social links
+        if contact.get("linkedin"):
+            candidate.linkedin_url = contact["linkedin"]
+        if contact.get("github"):
+            candidate.github_url = contact["github"]
+        
+        # Derive current position/company from latest experience
+        experience = parsed_data.get("experience", [])
+        if experience:
+            # Sort by end_date descending, or use is_current flag
+            latest_exp = max(experience, key=lambda x: (x.get("is_current", False), x.get("end_date") or "9999-12-31"))
+            candidate.current_position = latest_exp.get("title")
+            candidate.current_company = latest_exp.get("company")
+        
+        # Map total_experience_years to years_of_experience
+        if parsed_data.get("total_experience_years"):
+            candidate.total_experience_years = parsed_data["total_experience_years"]
+        
+        # Update summary
         if parsed_data.get("summary"):
             candidate.summary = parsed_data["summary"]
-        if parsed_data.get("current_position"):
-            candidate.current_position = parsed_data["current_position"]
-        if parsed_data.get("current_company"):
-            candidate.current_company = parsed_data["current_company"]
-        if parsed_data.get("years_of_experience"):
-            candidate.years_of_experience = parsed_data["years_of_experience"]
-        if parsed_data.get("location"):
-            candidate.location = parsed_data["location"]
-        if parsed_data.get("phone"):
-            candidate.phone = parsed_data["phone"]
         
         # Add experience entries
         for exp in parsed_data.get("experience", []):

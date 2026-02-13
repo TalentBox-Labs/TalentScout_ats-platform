@@ -280,6 +280,26 @@ async def move_to_stage(
             detail="Application not found",
         )
     
+    # Validate target stage belongs to the same job and organization
+    result = await db.execute(
+        select(JobStage)
+        .join(Job)
+        .where(
+            and_(
+                JobStage.id == stage_data.current_stage,
+                Job.id == application.job_id,
+                Job.organization_id == current_user.organization_id
+            )
+        )
+    )
+    target_stage = result.scalar_one_or_none()
+    
+    if not target_stage:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target stage not found or does not belong to this job",
+        )
+    
     old_stage_id = application.current_stage
     application.current_stage = stage_data.current_stage
     
