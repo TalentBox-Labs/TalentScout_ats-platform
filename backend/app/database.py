@@ -2,6 +2,7 @@
 import subprocess
 import sys
 from typing import AsyncGenerator
+import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -55,18 +56,15 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database using Alembic migrations."""
+    """Initialize database connection."""
     try:
-        # Run Alembic migrations to create/update database schema
-        result = subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        print(f"Database migrations completed successfully: {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        print(f"Error running database migrations: {e.stderr}")
+        # For SQLite, the database file will be created automatically
+        # Just test the connection
+        async with AsyncSessionLocal() as session:
+            await session.execute(sa.text("SELECT 1"))
+        print("Database connection established successfully")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
         raise
 
 

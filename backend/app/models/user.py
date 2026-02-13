@@ -1,6 +1,5 @@
 """User and Organization models."""
 from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -21,7 +20,7 @@ class Organization(Base, TimeStampMixin):
     
     __tablename__ = "organizations"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String(255), nullable=False)
     domain = Column(String(255), unique=True, index=True)
     logo_url = Column(String(500))
@@ -45,7 +44,7 @@ class User(Base, TimeStampMixin):
     
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    id = Column(String, primary_key=True, default=generate_uuid)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
@@ -85,9 +84,9 @@ class OrganizationMember(Base, TimeStampMixin):
     
     __tablename__ = "organization_members"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.RECRUITER)
     is_active = Column(Boolean, default=True)
     permissions = Column(JSON, default=dict)  # Custom permissions

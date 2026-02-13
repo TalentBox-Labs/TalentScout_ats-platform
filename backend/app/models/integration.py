@@ -1,6 +1,5 @@
 """Integration models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Boolean, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.models.base import TimeStampMixin, generate_uuid
@@ -11,7 +10,7 @@ class Integration(Base, TimeStampMixin):
     
     __tablename__ = "integrations"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    id = Column(String, primary_key=True, default=generate_uuid)
     
     name = Column(String(100), nullable=False, unique=True)
     display_name = Column(String(255), nullable=False)
@@ -41,10 +40,10 @@ class IntegrationConfig(Base, TimeStampMixin):
     
     __tablename__ = "integration_configs"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    integration_id = Column(UUID(as_uuid=False), ForeignKey("integrations.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))  # User who set it up
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    integration_id = Column(String, ForeignKey("integrations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))  # User who set it up
     
     is_enabled = Column(Boolean, default=True)
     
@@ -78,8 +77,8 @@ class IntegrationLog(Base, TimeStampMixin):
     
     __tablename__ = "integration_logs"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    config_id = Column(UUID(as_uuid=False), ForeignKey("integration_configs.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    config_id = Column(String, ForeignKey("integration_configs.id", ondelete="CASCADE"), nullable=False)
     
     action = Column(String(100), nullable=False)  # "sync", "post_job", "import_candidate"
     status = Column(String(50), nullable=False)  # "success", "error", "warning"

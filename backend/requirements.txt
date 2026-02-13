@@ -3,14 +3,10 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
-# Database
+# Database - SQLite for development
 sqlalchemy==2.0.25
 alembic==1.13.1
-psycopg2-binary==2.9.9
-asyncpg==0.29.0
-
-# PostgreSQL Vector Extension
-pgvector==0.2.4
+aiosqlite==0.19.0
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -23,13 +19,13 @@ pydantic-settings==2.1.0
 celery==5.3.6
 redis==5.0.1
 
-# AI/ML Libraries
-openai==1.10.0
-langchain==0.1.6
-langchain-openai==0.0.5
-sentence-transformers==2.3.1
-spacy==3.7.2
-transformers==4.37.2
+# AI/ML Libraries (install separately if needed)
+# openai==1.10.0
+# langchain==0.1.6
+# langchain-openai==0.0.5
+# sentence-transformers==2.3.1
+# spacy==3.7.2
+# transformers==4.37.2
 
 # Resume Parsing
 PyPDF2==3.0.1
@@ -50,8 +46,8 @@ httpx==0.26.0
 # Data Validation & Serialization
 email-validator==2.1.0.post1
 
-# CORS
-python-cors==1.0.0
+# CORS - Built into FastAPI
+# python-cors==1.0.0
 
 # Testing
 pytest==7.4.4

@@ -1,8 +1,6 @@
 """Job-related models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON, Float
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from pgvector.sqlalchemy import Vector
 import enum
 from app.database import Base
 from app.models.base import TimeStampMixin, generate_uuid
@@ -41,9 +39,9 @@ class Job(Base, TimeStampMixin):
     
     __tablename__ = "jobs"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     # Basic Info
     title = Column(String(255), nullable=False, index=True)
@@ -69,7 +67,7 @@ class Job(Base, TimeStampMixin):
     openings = Column(Integer, default=1)  # Number of positions
     
     # AI Features
-    embedding = Column(Vector(1536))  # OpenAI embedding dimension
+    embedding = Column(JSON, default=list)  # OpenAI embedding dimension (using JSON for SQLite dev)
     skills_required = Column(JSON, default=list)  # List of required skills
     skills_preferred = Column(JSON, default=list)  # List of preferred skills
     
@@ -93,8 +91,8 @@ class JobStage(Base, TimeStampMixin):
     
     __tablename__ = "job_stages"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    job_id = Column(UUID(as_uuid=False), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    job_id = Column(String, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     
     name = Column(String(100), nullable=False)
     description = Column(Text)
@@ -119,9 +117,9 @@ class JobTemplate(Base, TimeStampMixin):
     
     __tablename__ = "job_templates"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     name = Column(String(255), nullable=False)
     title = Column(String(255), nullable=False)

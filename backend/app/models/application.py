@@ -1,6 +1,5 @@
 """Application and pipeline models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Float, Boolean, JSON
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -34,13 +33,13 @@ class Application(Base, TimeStampMixin):
     
     __tablename__ = "applications"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    job_id = Column(UUID(as_uuid=False), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
-    candidate_id = Column(UUID(as_uuid=False), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    job_id = Column(String, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    candidate_id = Column(String, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
     
     # Status & Stage
     status = Column(SQLEnum(ApplicationStatus), nullable=False, default=ApplicationStatus.ACTIVE, index=True)
-    current_stage = Column(UUID(as_uuid=False), ForeignKey("job_stages.id", ondelete="SET NULL"))
+    current_stage = Column(String, ForeignKey("job_stages.id", ondelete="SET NULL"))
     
     # Application Data
     cover_letter = Column(Text)
@@ -60,7 +59,7 @@ class Application(Base, TimeStampMixin):
     # Metadata
     applied_at = Column(String(255))
     source = Column(String(100))  # How they applied
-    referrer_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))  # If referred
+    referrer_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))  # If referred
     
     # Flags
     is_flagged = Column(Boolean, default=False)
@@ -86,9 +85,9 @@ class ApplicationActivity(Base, TimeStampMixin):
     
     __tablename__ = "application_activities"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     activity_type = Column(SQLEnum(ActivityType), nullable=False)
     title = Column(String(255), nullable=False)
@@ -108,9 +107,9 @@ class ApplicationNote(Base, TimeStampMixin):
     
     __tablename__ = "application_notes"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     content = Column(Text, nullable=False)
     is_private = Column(Boolean, default=False)  # Private to user only
@@ -130,9 +129,9 @@ class ApplicationScore(Base, TimeStampMixin):
     
     __tablename__ = "application_scores"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     category = Column(String(100), nullable=False)  # e.g., "Technical Skills", "Culture Fit"
     score = Column(Float, nullable=False)  # Score value

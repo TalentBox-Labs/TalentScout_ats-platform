@@ -1,6 +1,5 @@
 """Communication and email models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Boolean, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -31,9 +30,9 @@ class EmailTemplate(Base, TimeStampMixin):
     
     __tablename__ = "email_templates"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     name = Column(String(255), nullable=False)
     subject = Column(String(500), nullable=False)
@@ -63,12 +62,12 @@ class Communication(Base, TimeStampMixin):
     
     __tablename__ = "communications"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    candidate_id = Column(UUID(as_uuid=False), ForeignKey("candidates.id", ondelete="CASCADE"))
-    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="SET NULL"))
-    template_id = Column(UUID(as_uuid=False), ForeignKey("email_templates.id", ondelete="SET NULL"))
-    sent_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    candidate_id = Column(String, ForeignKey("candidates.id", ondelete="CASCADE"))
+    application_id = Column(String, ForeignKey("applications.id", ondelete="SET NULL"))
+    template_id = Column(String, ForeignKey("email_templates.id", ondelete="SET NULL"))
+    sent_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     # Communication Details
     type = Column(SQLEnum(CommunicationType), nullable=False, default=CommunicationType.EMAIL)
@@ -110,9 +109,9 @@ class EmailSequence(Base, TimeStampMixin):
     
     __tablename__ = "email_sequences"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     name = Column(String(255), nullable=False)
     description = Column(Text)

@@ -1,5 +1,5 @@
 # Copilot Instructions for ATS Platform
-
+"Always reuse the active terminal for commands. Do not create new terminal instances unless the current one is busy."
 ## Big picture (what’s actually wired)
 - Two backend implementations exist: **FastAPI (Python)** under backend/app and an **Express (TypeScript)** scaffold under backend/src. Docker Compose uses the **FastAPI** backend (port 8000) and Celery worker.
 - The frontend is a **Vite React app** under frontend/src (port 5173 by default). A Next.js-style app directory exists under frontend/app, but package.json does not include Next.js dependencies—treat it as a future/unused scaffold unless you add Next.js.

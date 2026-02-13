@@ -1,6 +1,5 @@
 """Assessment and screening models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Float, Boolean, JSON, Integer
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -31,9 +30,9 @@ class ScreeningTemplate(Base, TimeStampMixin):
     
     __tablename__ = "screening_templates"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     name = Column(String(255), nullable=False)
     description = Column(Text)
@@ -56,9 +55,9 @@ class Assessment(Base, TimeStampMixin):
     
     __tablename__ = "assessments"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
-    template_id = Column(UUID(as_uuid=False), ForeignKey("screening_templates.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    application_id = Column(String, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    template_id = Column(String, ForeignKey("screening_templates.id", ondelete="SET NULL"))
     
     title = Column(String(255), nullable=False)
     description = Column(Text)
@@ -89,8 +88,8 @@ class AssessmentResponse(Base, TimeStampMixin):
     
     __tablename__ = "assessment_responses"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    assessment_id = Column(UUID(as_uuid=False), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    assessment_id = Column(String, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
     
     question_id = Column(String(100), nullable=False)  # Reference to question in template
     question_text = Column(Text, nullable=False)
@@ -122,9 +121,9 @@ class AssessmentScore(Base, TimeStampMixin):
     
     __tablename__ = "assessment_scores"
     
-    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
-    assessment_id = Column(UUID(as_uuid=False), ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
-    scored_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(String, primary_key=True, default=generate_uuid)
+    assessment_id = Column(String, ForeignKey("assessments.id", ondelete="CASCADE"), nullable=False)
+    scored_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
     
     # Scores
     total_score = Column(Float, nullable=False)

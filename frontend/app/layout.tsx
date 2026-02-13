@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description: 'Modern Application Tracking System powered by AI',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: {

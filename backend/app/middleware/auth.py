@@ -31,10 +31,9 @@ async def get_current_user(
     
     try:
         payload = decode_token(token)
-        email: str = payload.get("sub")
-        user_id: str = payload.get("user_id")
+        user_id: str = payload.get("sub")
         
-        if email is None or user_id is None:
+        if user_id is None:
             raise credentials_exception
     except Exception:
         raise credentials_exception
@@ -51,6 +50,16 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
+    
+    # Get user's organization
+    from app.models.user import OrganizationMember
+    result = await db.execute(
+        select(OrganizationMember)
+        .where(OrganizationMember.user_id == user.id, OrganizationMember.is_active == True)
+        .limit(1)
+    )
+    member = result.scalar_one_or_none()
+    user.organization_id = member.organization_id if member else None
     
     return user
 

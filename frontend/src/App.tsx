@@ -3,7 +3,7 @@ import './App.css'
 
 function App() {
   const [apiStatus, setApiStatus] = useState<string>('Checking...')
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     // Check backend API health
