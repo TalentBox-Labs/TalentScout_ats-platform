@@ -77,10 +77,10 @@ class ActivityResponse(BaseModel):
     """Schema for activity response."""
     id: UUID
     application_id: UUID
-    type: str
+    activity_type: str
     description: str
     user_id: Optional[UUID] = None
-    metadata: Optional[Dict[str, Any]] = None
+    activity_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
     
     class Config:

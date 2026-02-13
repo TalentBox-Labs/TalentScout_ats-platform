@@ -107,7 +107,7 @@ async def _screen_candidate_async(application_id: str):
             activity_type=ActivityType.SCREENING_COMPLETED,
             title="AI Screening Completed",
             description=f"AI screening completed with fit score: {screening_result.get('fit_score')}%",
-            metadata=screening_result,
+            activity_metadata=screening_result,
         )
         db.add(activity)
         

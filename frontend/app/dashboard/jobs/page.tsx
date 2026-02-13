@@ -86,7 +86,7 @@ export default function JobsPage() {
                     {job.location || 'Remote'}
                   </td>
                   <td className="px-4 py-3 text-xs capitalize">
-                    {job.job_type.replace('_', ' ')}
+                    {job.employment_type.replace('_', ' ')}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDate(job.created_at)}

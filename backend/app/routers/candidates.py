@@ -355,7 +355,7 @@ async def semantic_search_candidates(
             first_name,
             last_name,
             email,
-            headline as current_position,
+            current_title as current_position,
             current_company,
             location,
             resume_url,

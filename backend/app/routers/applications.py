@@ -284,7 +284,7 @@ async def move_to_stage(
         title="Stage Changed",
         description=f"Moved to stage {stage_data.current_stage}",
         user_id=current_user.id,
-        metadata={"old_stage_id": str(old_stage_id), "new_stage_id": str(stage_data.current_stage)},
+        activity_metadata={"old_stage_id": str(old_stage_id), "new_stage_id": str(stage_data.current_stage)},
     )
     db.add(activity)
     
@@ -332,7 +332,7 @@ async def update_status(
         title="Status Changed",
         description=f"Status changed from {old_status} to {status_data.status}",
         user_id=current_user.id,
-        metadata={"old_status": old_status, "new_status": status_data.status, "reason": status_data.reason},
+        activity_metadata={"old_status": old_status, "new_status": status_data.status, "reason": status_data.reason},
     )
     db.add(activity)
     
