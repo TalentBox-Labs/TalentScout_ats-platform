@@ -65,7 +65,6 @@ async def root():
 
 
 # Import and include routers
-<<<<<<< HEAD
 from app.routers import (
     auth,
     organizations,
@@ -82,29 +81,19 @@ from app.routers import (
     integrations,
 )
 
-app.include_router(auth.router)
-app.include_router(organizations.router)
-app.include_router(jobs.router)
-app.include_router(candidates.router)
-app.include_router(applications.router)
-app.include_router(ai.router)
-app.include_router(assessments.router)
-app.include_router(interviews.router)
-app.include_router(communications.router)
-app.include_router(analytics.router)
-app.include_router(settings.router)
-app.include_router(onboarding.router)
-app.include_router(integrations.router)
-=======
-from app.routers import auth, jobs, candidates, applications, interviews, ai
-
 app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(organizations.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(candidates.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(applications.router, prefix=f"{settings.api_v1_prefix}")
-app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(ai.router, prefix=f"{settings.api_v1_prefix}")
->>>>>>> 5d2116f11babd3814a39d8d56d48d2e1785992f5
+app.include_router(assessments.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(communications.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(analytics.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(settings.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(onboarding.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(integrations.router, prefix=f"{settings.api_v1_prefix}")
 
 
 if __name__ == "__main__":

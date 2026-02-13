@@ -93,7 +93,7 @@ class ApplicationActivity(Base, TimeStampMixin):
     activity_type = Column(SQLEnum(ActivityType), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    metadata = Column(JSON, default=dict)  # Additional data
+    activity_metadata = Column(JSON, default=dict)  # Additional data
     
     # Relationships
     application = relationship("Application", back_populates="activities")

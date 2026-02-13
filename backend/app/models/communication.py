@@ -96,7 +96,7 @@ class Communication(Base, TimeStampMixin):
     provider_message_id = Column(String(255))  # SendGrid/Resend message ID
     error_message = Column(Text)
     attachments = Column(JSON, default=list)
-    metadata = Column(JSON, default=dict)
+    communication_metadata = Column(JSON, default=dict)
     
     # Relationships
     template = relationship("EmailTemplate", back_populates="communications")

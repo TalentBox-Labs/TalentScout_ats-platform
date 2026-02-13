@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.assessment import ScreeningTemplate, Assessment, AssessmentResponse, AssessmentStatus, ScreeningQuestion
+from app.models.assessment import ScreeningTemplate, Assessment, AssessmentResponse, AssessmentStatus
 from app.models.application import Application
 from app.models.job import Job
 from app.middleware.auth import get_current_user
@@ -61,33 +61,13 @@ async def create_screening_template(
     new_template = ScreeningTemplate(
         name=template_data.name,
         description=template_data.description,
-        type=template_data.type,
+        questions=[q.model_dump() for q in template_data.questions],  # Store as JSON
         organization_id=current_user.organization_id,
     )
     
     db.add(new_template)
-    await db.flush()
-    
-    # Add questions
-    for q_data in template_data.questions:
-        question = ScreeningQuestion(
-            template_id=new_template.id,
-            question_text=q_data.question_text,
-            question_type=q_data.question_type,
-            required=q_data.required,
-            options=q_data.options,
-            correct_answer=q_data.correct_answer,
-            points=q_data.points,
-        )
-        db.add(question)
-    
     await db.commit()
     await db.refresh(new_template)
-    
-    # Load questions
-    result = await db.execute(
-        select(ScreeningTemplate)
-        .where(ScreeningTemplate.id == new_template.id)
         .options(selectinload(ScreeningTemplate.questions))
     )
     template_with_questions = result.scalar_one()
