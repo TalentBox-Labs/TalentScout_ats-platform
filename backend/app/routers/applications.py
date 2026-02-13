@@ -30,7 +30,7 @@ from app.schemas.application import (
 )
 from app.workers.ai_screening import screen_candidate_task
 
-router = APIRouter(prefix="/api/v1/applications", tags=["applications"])
+router = APIRouter(prefix="/applications", tags=["applications"])
 
 
 @router.get("", response_model=List[ApplicationListResponse])

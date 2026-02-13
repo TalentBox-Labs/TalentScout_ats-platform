@@ -27,7 +27,7 @@ from app.schemas.job import (
 )
 from app.workers.embedding_worker import generate_job_embedding
 
-router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
+router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 @router.get("", response_model=List[JobListResponse])

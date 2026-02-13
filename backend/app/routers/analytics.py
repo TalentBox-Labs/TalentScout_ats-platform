@@ -15,7 +15,7 @@ from app.models.job import Job, JobStage
 from app.models.candidate import Candidate
 from app.middleware.auth import get_current_user
 
-router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
+router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("", response_model=Dict[str, Any])

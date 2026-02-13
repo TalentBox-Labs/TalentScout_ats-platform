@@ -27,7 +27,7 @@ from app.schemas.communication import (
 from app.services.email_service import EmailService
 from app.services.ai_service import AIService
 
-router = APIRouter(prefix="/api/v1/communications", tags=["communications"])
+router = APIRouter(prefix="/communications", tags=["communications"])
 
 
 @router.get("/email-templates", response_model=List[EmailTemplateResponse])

@@ -94,14 +94,16 @@ class APIClient {
   async register(data: {
     email: string
     password: string
-    fullName: string
-    organizationName: string
+    first_name: string
+    last_name: string
+    organization_name?: string
   }) {
     const response = await this.client.post('/api/v1/auth/register', {
       email: data.email,
       password: data.password,
-      full_name: data.fullName,
-      organization_name: data.organizationName,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      organization_name: data.organization_name,
     })
     this.setToken(response.data.access_token)
     if (response.data.refresh_token) {

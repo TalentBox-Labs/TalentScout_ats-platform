@@ -19,7 +19,7 @@ from app.workers.ai_screening import screen_candidate_task
 from app.workers.resume_parser import parse_resume_task
 from app.schemas.ai import EmailGenerationRequest
 
-router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
+router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 @router.post("/parse-resume", response_model=Dict[str, Any])
@@ -197,8 +197,8 @@ async def generate_email(
     ai_service = AIService()
     
     email_content = await ai_service.generate_email(
-        template_type=request.template_type,
         context=request.context,
+        email_type=request.template_type,
         tone=request.tone
     )
     
@@ -224,14 +224,12 @@ async def generate_job_description(
     """
     ai_service = AIService()
     
-    context = {
-        "title": title,
-        "department": department,
-        "experience_level": experience_level,
-        "skills": skills,
-    }
-    
-    job_description = await ai_service.generate_job_description(context)
+    job_description = await ai_service.generate_job_description(
+        title=title,
+        department=department,
+        experience_level=experience_level,
+        key_skills=skills.split(',') if skills else None
+    )
     
     return job_description
 
@@ -250,14 +248,10 @@ async def generate_interview_questions(
     """
     ai_service = AIService()
     
-    context = {
-        "job_title": job_title,
-        "candidate_experience": candidate_experience,
-        "focus_areas": focus_areas,
-        "question_count": question_count,
-    }
-    
-    questions = await ai_service.generate_interview_questions(context)
+    questions = await ai_service.generate_interview_questions(
+        job_context={"title": job_title, "experience_level": candidate_experience},
+        count=question_count
+    )
     
     return {
         "job_title": job_title,

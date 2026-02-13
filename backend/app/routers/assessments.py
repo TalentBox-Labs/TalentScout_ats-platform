@@ -27,7 +27,7 @@ from app.schemas.assessment import (
 )
 from app.services.ai_service import AIService
 
-router = APIRouter(prefix="/api/v1/assessments", tags=["assessments"])
+router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 
 @router.get("/templates", response_model=List[ScreeningTemplateResponse])

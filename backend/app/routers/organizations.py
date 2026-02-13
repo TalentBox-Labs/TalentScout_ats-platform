@@ -21,7 +21,7 @@ from app.schemas.organization import (
     OrganizationInvite,
 )
 
-router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
+router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 
 @router.get("", response_model=List[OrganizationResponse])

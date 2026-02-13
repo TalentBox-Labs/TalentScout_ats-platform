@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.user import User
 from app.middleware.auth import get_current_user
 
-router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.get("/automation", response_model=Dict[str, Any])

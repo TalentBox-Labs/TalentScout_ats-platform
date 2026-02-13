@@ -31,7 +31,7 @@ from app.services.ai_service import AIService
 # Get settings
 settings = Settings()
 
-router = APIRouter(prefix="/api/v1/candidates", tags=["candidates"])
+router = APIRouter(prefix="/candidates", tags=["candidates"])
 
 
 @router.get("", response_model=List[CandidateListResponse])
