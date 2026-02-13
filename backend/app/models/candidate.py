@@ -25,6 +25,8 @@ class Candidate(Base, TimeStampMixin):
     
     # Profile
     headline = Column(String(500))  # Current role/title
+    current_position = Column(String(255), index=True)  # Current position from parsed data
+    current_company = Column(String(255), index=True)  # Current company from parsed data
     summary = Column(Text)  # Bio/about
     avatar_url = Column(String(500))
     resume_url = Column(String(500))  # S3 URL

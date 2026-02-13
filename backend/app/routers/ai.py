@@ -3,7 +3,7 @@ AI router for AI-powered features like resume parsing, candidate matching, etc.
 """
 from typing import Dict, Any, List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 
@@ -17,6 +17,7 @@ from app.services.ai_service import AIService
 from app.services.parser_service import ParserService
 from app.workers.ai_screening import screen_candidate_task
 from app.workers.resume_parser import parse_resume_task
+from app.schemas.ai import EmailGenerationRequest
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
@@ -143,7 +144,7 @@ async def match_candidates(
             c.first_name,
             c.last_name,
             c.email,
-            c.current_title as current_position,
+            c.current_position,
             c.current_company,
             c.location,
             c.resume_url,
@@ -186,11 +187,7 @@ async def match_candidates(
 
 @router.post("/generate-email", response_model=Dict[str, Any])
 async def generate_email(
-    template_type: str = Form(...),
-    candidate_name: str = Form(...),
-    job_title: str = Form(...),
-    company_name: str = Form(...),
-    tone: Optional[str] = Form("professional"),
+    request: EmailGenerationRequest = Body(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -199,23 +196,17 @@ async def generate_email(
     """
     ai_service = AIService()
     
-    context = {
-        "candidate_name": candidate_name,
-        "job_title": job_title,
-        "company_name": company_name,
-    }
-    
     email_content = await ai_service.generate_email(
-        template_type=template_type,
-        context=context,
-        tone=tone
+        template_type=request.template_type,
+        context=request.context,
+        tone=request.tone
     )
     
     return {
         "subject": email_content.get("subject", ""),
         "body": email_content.get("body", ""),
-        "template_type": template_type,
-        "tone": tone
+        "template_type": request.template_type,
+        "tone": request.tone
     }
 
 
