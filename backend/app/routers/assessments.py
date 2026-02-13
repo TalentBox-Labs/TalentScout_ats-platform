@@ -68,11 +68,8 @@ async def create_screening_template(
     db.add(new_template)
     await db.commit()
     await db.refresh(new_template)
-        .options(selectinload(ScreeningTemplate.questions))
-    )
-    template_with_questions = result.scalar_one()
     
-    return template_with_questions
+    return new_template
 
 
 @router.get("/templates/{template_id}", response_model=ScreeningTemplateResponse)

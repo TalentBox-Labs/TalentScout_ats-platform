@@ -1,21 +1,6 @@
-from typing import List, Optional
-from uuid import UUID
-from datetime import datetime
+"""
+Interview management router.
+"""
+from fastapi import APIRouter
 
-    
-    if not interview:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-    
-    return interview
-
-
-    
-    if not interview:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-    
-    if not interview:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])

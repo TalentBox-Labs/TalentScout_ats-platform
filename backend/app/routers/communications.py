@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.communication import EmailTemplate, Communication, EmailSequence, EmailSequenceStep
+from app.models.communication import EmailTemplate, Communication, EmailSequence
 from app.models.candidate import Candidate
 from app.middleware.auth import get_current_user
 from app.schemas.communication import (

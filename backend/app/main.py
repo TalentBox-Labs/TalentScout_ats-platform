@@ -76,7 +76,7 @@ from app.routers import (
     interviews,
     communications,
     analytics,
-    settings,
+    settings as settings_router,
     onboarding,
     integrations,
 )
@@ -91,7 +91,7 @@ app.include_router(assessments.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(interviews.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(communications.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(analytics.router, prefix=f"{settings.api_v1_prefix}")
-app.include_router(settings.router, prefix=f"{settings.api_v1_prefix}")
+app.include_router(settings_router.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(onboarding.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(integrations.router, prefix=f"{settings.api_v1_prefix}")
 

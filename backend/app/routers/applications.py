@@ -208,6 +208,7 @@ async def get_application(
         )
 
     return application
+@router.patch("/{application_id}", response_model=ApplicationResponse)
 async def update_application(
     application_id: UUID,
     app_data: ApplicationUpdate,
@@ -242,6 +243,8 @@ async def update_application(
     
     await db.commit()
     await db.refresh(application)
+    
+    return application
 
 @router.patch("/{application_id}/stage", response_model=ApplicationResponse)
 async def move_to_stage(
