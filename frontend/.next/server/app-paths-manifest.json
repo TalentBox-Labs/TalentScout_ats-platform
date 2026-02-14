@@ -1,1 +1,3 @@
-{}
+{
+  "/dashboard/candidates/page": "app/dashboard/candidates/page.js"
+}
