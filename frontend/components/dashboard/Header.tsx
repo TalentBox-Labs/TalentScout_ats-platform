@@ -3,7 +3,6 @@
  */
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -35,12 +34,6 @@ export function Header() {
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/profile">
-          <Button variant="ghost" size="sm">Profile</Button>
-        </Link>
-        <Link href="/dashboard/settings">
-          <Button variant="ghost" size="sm">Settings</Button>
-        </Link>
         <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
         <ThemeToggle />
         <Button variant="ghost" size="icon" className="relative">

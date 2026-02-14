@@ -5,11 +5,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Briefcase,
   Users,
+  ChevronUp,
+  UserCircle,
+  Settings,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
@@ -21,10 +25,23 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: async () => apiClient.getCurrentUser(),
   });
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const fullName = user ? `${user.first_name} ${user.last_name}` : 'Loading...';
   const initials = user
@@ -65,8 +82,32 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-3">
+      <div className="relative border-t border-border p-4" ref={menuRef}>
+        {menuOpen && (
+          <div className="absolute bottom-20 left-4 right-4 z-20 rounded-md border border-border bg-popover p-1 shadow-md">
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-2 py-2 text-sm text-popover-foreground hover:bg-muted"
+            >
+              <UserCircle className="h-4 w-4" />
+              Profile
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-2 py-2 text-sm text-popover-foreground hover:bg-muted"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="flex w-full items-center gap-3 rounded-md p-1 text-left hover:bg-muted"
+        >
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
             {initials}
           </div>
@@ -74,7 +115,8 @@ export function Sidebar() {
             <p className="truncate text-sm font-medium text-foreground">{fullName}</p>
             <p className="truncate text-xs text-muted-foreground">{user?.email || ' '}</p>
           </div>
-        </div>
+          <ChevronUp className={`h-4 w-4 text-muted-foreground transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+        </button>
       </div>
     </div>
   );
