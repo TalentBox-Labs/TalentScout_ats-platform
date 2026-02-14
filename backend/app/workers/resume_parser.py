@@ -92,10 +92,10 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
             raise ValueError("Failed to extract text from resume")
         
         # Use AI to parse resume and extract structured data (if available)
+        ai_service = AIService()
         parsed_data = {}
         if settings.openai_api_key:
             try:
-                ai_service = AIService()
                 parsed_data = await ai_service.parse_resume_text(resume_text)
             except ValueError as e:
                 # AI not available, continue without AI enrichment
@@ -164,8 +164,17 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
             )
             db.add(skill)
         
-        # Generate embedding from resume text
-        embedding = await ai_service.generate_embedding(resume_text)
+        # Generate embedding from resume text (if AI available)
+        embedding = []
+        if settings.openai_api_key:
+            try:
+                embedding = await ai_service.generate_embedding(resume_text)
+            except ValueError as e:
+                print(f"AI embedding generation skipped: {str(e)}")
+                embedding = []
+        else:
+            print("AI embedding generation skipped: OPENAI_API_KEY not set")
+        
         candidate.resume_embedding = embedding
         
         await db.commit()

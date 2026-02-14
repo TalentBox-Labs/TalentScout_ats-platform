@@ -47,7 +47,7 @@ export default function JobsPage() {
     }
   }
 
-  const getEmploymentTypeIcon = (type: string) => {
+  const getJobTypeIcon = (type: string) => {
     switch (type) {
       case 'full_time':
         return 'Full-time'
@@ -177,7 +177,7 @@ export default function JobsPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="capitalize">{getEmploymentTypeIcon(job.employment_type)}</span>
+                    <span className="capitalize">{getJobTypeIcon(job.job_type)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Users className="w-4 h-4 text-gray-400" />
