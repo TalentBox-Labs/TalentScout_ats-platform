@@ -43,7 +43,7 @@ export default function JobDetailPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{job.title}</h1>
           <p className="text-sm text-muted-foreground">
             {job.location || 'Remote'} ·{' '}
-            <span className="capitalize">{job.employment_type.replace('_', ' ')}</span>
+            <span className="capitalize">{job.job_type.replace('_', ' ')}</span>
           </p>
         </div>
         <Link
