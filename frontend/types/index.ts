@@ -38,7 +38,7 @@ export interface Job {
   department?: string
   location?: string
   is_remote: boolean
-  employment_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
+  job_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
   experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'principal'
   salary_min?: number
   salary_max?: number

@@ -19,15 +19,15 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
-  { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
-  { name: 'Pipeline', href: '/dashboard/pipeline', icon: GitBranch },
-  { name: 'Interviews', href: '/dashboard/interviews', icon: Calendar },
-  { name: 'Communications', href: '/dashboard/communications', icon: Mail },
-  { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, implemented: true },
+  { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase, implemented: true },
+  { name: 'Candidates', href: '/dashboard/candidates', icon: Users, implemented: true },
+  { name: 'Pipeline', href: '/dashboard/pipeline', icon: GitBranch, implemented: false }, // TODO: Implement pipeline view
+  { name: 'Interviews', href: '/dashboard/interviews', icon: Calendar, implemented: false }, // TODO: Implement interview scheduling
+  { name: 'Communications', href: '/dashboard/communications', icon: Mail, implemented: false }, // TODO: Implement email communications
+  { name: 'Reports', href: '/dashboard/reports', icon: FileText, implemented: false }, // TODO: Implement reporting system
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, implemented: false }, // TODO: Implement analytics dashboard
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings, implemented: false }, // TODO: Implement settings page
 ];
 
 export function Sidebar() {
@@ -52,6 +52,19 @@ export function Sidebar() {
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
           const Icon = item.icon;
+
+          if (!item.implemented) {
+            return (
+              <div
+                key={item.name}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 cursor-not-allowed opacity-50"
+                title="Coming soon"
+              >
+                <Icon className="h-5 w-5" />
+                <span className="font-semibold">{item.name}</span>
+              </div>
+            );
+          }
 
           return (
             <Link
