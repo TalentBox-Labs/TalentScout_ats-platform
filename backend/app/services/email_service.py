@@ -20,3 +20,14 @@ class EmailService:
         """
         # Placeholder implementation
         return {"status": "sent", "message_id": "placeholder"}
+
+    async def send_email_async(
+        self,
+        to_email: str,
+        subject: str,
+        body: str,
+        communication_id: str | None = None,
+    ) -> dict:
+        """Compatibility wrapper used by routers."""
+        _ = communication_id
+        return await self.send_email(to_email=to_email, subject=subject, body=body)

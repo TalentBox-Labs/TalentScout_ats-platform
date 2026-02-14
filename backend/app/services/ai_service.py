@@ -399,3 +399,36 @@ class AIService:
         except Exception as e:
             print(f"Error generating questions: {str(e)}")
             return []
+
+    @staticmethod
+    async def enhance_email(body: str) -> Dict[str, str]:
+        """
+        Light-weight compatibility helper used by communications router.
+        Returns original body if enhancement fails or AI is unavailable.
+        """
+        if not body:
+            return {"body": ""}
+
+        prompt = f"""
+        Improve the following email for clarity and professionalism while preserving intent.
+        Return JSON with one field: {{"body": "enhanced html body"}}.
+
+        Email:
+        {body}
+        """
+        try:
+            response = await client.chat.completions.create(
+                model=settings.openai_model,
+                messages=[
+                    {"role": "system", "content": "You improve recruiting emails."},
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.3,
+            )
+            import json
+
+            parsed = json.loads(response.choices[0].message.content)
+            return {"body": parsed.get("body", body)}
+        except Exception:
+            return {"body": body}

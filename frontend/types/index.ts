@@ -78,6 +78,7 @@ export interface Candidate {
   linkedin_url?: string
   github_url?: string
   total_experience_years?: number
+  years_of_experience?: number
   quality_score?: number
   tags?: string[]
   created_at: string

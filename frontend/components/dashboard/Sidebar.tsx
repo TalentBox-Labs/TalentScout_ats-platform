@@ -9,24 +9,12 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
-  GitBranch,
-  Calendar,
-  Mail,
-  BarChart3,
-  Settings,
-  FileText,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
   { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
-  { name: 'Pipeline', href: '/dashboard/pipeline', icon: GitBranch },
-  { name: 'Interviews', href: '/dashboard/interviews', icon: Calendar },
-  { name: 'Communications', href: '/dashboard/communications', icon: Mail },
-  { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function Sidebar() {

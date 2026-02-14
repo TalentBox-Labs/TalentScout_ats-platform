@@ -1,7 +1,7 @@
 """
 Authentication middleware for JWT verification and role-based access control.
 """
-from typing import Optional, List
+from typing import List
 from functools import wraps
 
 from fastapi import Depends, HTTPException, status
@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, OrganizationMember
 from app.utils.security import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -29,18 +29,16 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    try:
-        payload = decode_token(token)
-        email: str = payload.get("sub")
-        user_id: str = payload.get("user_id")
-        
-        if email is None or user_id is None:
-            raise credentials_exception
-    except Exception:
+    payload = decode_token(token)
+    if payload is None:
+        raise credentials_exception
+    user_id = payload.get("sub")
+    token_org_id = payload.get("org_id")
+    if user_id is None:
         raise credentials_exception
     
     # Get user from database
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == str(user_id)))
     user = result.scalar_one_or_none()
     
     if user is None:
@@ -51,6 +49,23 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
+
+    membership_query = select(OrganizationMember).where(
+        OrganizationMember.user_id == user.id,
+        OrganizationMember.is_active == True,
+    )
+    if token_org_id:
+        membership_query = membership_query.where(
+            OrganizationMember.organization_id == str(token_org_id)
+        )
+    membership_query = membership_query.limit(1)
+
+    membership_result = await db.execute(membership_query)
+    membership = membership_result.scalar_one_or_none()
+
+    # Expose effective org/role for existing router code paths.
+    user.organization_id = membership.organization_id if membership else None  # type: ignore[attr-defined]
+    user.role = membership.role.value if membership else None  # type: ignore[attr-defined]
     
     return user
 
@@ -79,7 +94,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
     
     async def __call__(self, current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in self.allowed_roles:
+        if not current_user.role or current_user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {', '.join(self.allowed_roles)}",
@@ -95,7 +110,7 @@ def require_roles(allowed_roles: List[str]):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, current_user: User = Depends(get_current_user), **kwargs):
-            if current_user.role not in allowed_roles:
+            if not current_user.role or current_user.role not in allowed_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Access denied. Required roles: {', '.join(allowed_roles)}",

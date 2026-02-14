@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.job import Job, JobStage, JobTemplate
+from app.models.job import Job, JobStage, JobTemplate, JobType, ExperienceLevel
 from app.models.application import Application
 from app.middleware.auth import get_current_user
 from app.schemas.job import (
@@ -121,7 +121,6 @@ async def create_job(
             job_id=new_job.id,
             name=stage_data["name"],
             order=stage_data["order"],
-            stage_type=stage_data["type"],
         )
         db.add(stage)
     
@@ -290,7 +289,6 @@ async def create_job_stage(
         job_id=job_id,
         name=stage_data.name,
         order=stage_data.order,
-        stage_type=stage_data.stage_type,
     )
     
     db.add(new_stage)
@@ -409,8 +407,8 @@ async def create_job_template(
         requirements=template_data.requirements,
         responsibilities=template_data.responsibilities,
         department=template_data.department,
-        employment_type=template_data.employment_type,
-        experience_level=template_data.experience_level,
+        job_type=JobType(template_data.employment_type),
+        experience_level=ExperienceLevel(template_data.experience_level),
         skills_required=template_data.skills_required or [],
         is_public=False,
         organization_id=current_user.organization_id,
@@ -457,7 +455,7 @@ async def create_job_from_template(
         requirements=template.requirements,
         responsibilities=template.responsibilities,
         department=template.department,
-        employment_type=template.employment_type,
+        job_type=template.job_type,
         experience_level=template.experience_level,
         skills_required=template.skills_required,
         status="draft",

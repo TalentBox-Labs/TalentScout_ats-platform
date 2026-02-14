@@ -53,7 +53,7 @@ class RegisterResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: dict
-    organization: dict
+    organization: Optional[dict] = None
 
 
 class RefreshTokenRequest(BaseModel):

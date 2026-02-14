@@ -1,8 +1,5 @@
-"""
-Authentication router for user registration, login, and password management.
-"""
-from datetime import timedelta
-from typing import Annotated
+"""Authentication router for user registration, login, and password management."""
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,8 +10,6 @@ from app.database import get_db
 from app.models.user import User, Organization, OrganizationMember, UserRole
 from app.schemas.auth import (
     RegisterRequest,
-    UserLogin,
-    Token,
     RefreshTokenRequest,
     RegisterResponse,
     PasswordResetRequest,
@@ -29,9 +24,8 @@ from app.utils.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    get_current_user,
 )
-from app.config import settings
+from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -55,19 +49,14 @@ async def register(
             detail="User with this email already exists",
         )
     
-    # Create organization if provided
-    organization = None
-    if user_data.organization_name:
-        # Check if organization already exists
-        result = await db.execute(
-            select(Organization).where(Organization.name == user_data.organization_name)
-        )
-        organization = result.scalar_one_or_none()
-        
-        if not organization:
-            organization = Organization(name=user_data.organization_name)
-            db.add(organization)
-            await db.flush()  # Get the ID
+    # Create/find organization.
+    org_name = user_data.organization_name or f"{user_data.first_name}'s Organization"
+    result = await db.execute(select(Organization).where(Organization.name == org_name))
+    organization = result.scalar_one_or_none()
+    if not organization:
+        organization = Organization(name=org_name)
+        db.add(organization)
+        await db.flush()
     
     # Hash password
     hashed_password = get_password_hash(user_data.password)
@@ -82,14 +71,12 @@ async def register(
     db.add(user)
     await db.flush()  # Get the ID
     
-    # Create organization membership if organization exists
-    if organization:
-        member = OrganizationMember(
-            organization_id=organization.id,
-            user_id=user.id,
-            role=UserRole.RECRUITER,  # Default role
-        )
-        db.add(member)
+    member = OrganizationMember(
+        organization_id=organization.id,
+        user_id=user.id,
+        role=UserRole.RECRUITER,
+    )
+    db.add(member)
     
     await db.commit()
     await db.refresh(user)
@@ -114,7 +101,7 @@ async def register(
         organization={
             "id": str(organization.id),
             "name": organization.name,
-        } if organization else None,
+        },
     )
 
 
@@ -157,7 +144,7 @@ async def login(
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
     # Update last login
-    user.last_login = str(user.id)  # This should be a timestamp, but keeping simple for now
+    user.last_login = datetime.utcnow().isoformat()
     await db.commit()
     
     return LoginResponse(

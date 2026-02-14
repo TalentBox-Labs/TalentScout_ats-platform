@@ -42,7 +42,7 @@ class ExperienceResponse(BaseModel):
     """Schema for experience response."""
     id: UUID
     company: str
-    position: str
+    title: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     is_current: bool
@@ -91,13 +91,15 @@ class CandidateResponse(BaseModel):
     current_company: Optional[str] = None
     years_of_experience: Optional[int] = None
     summary: Optional[str] = None
-    source: str
     organization_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
     experiences: Optional[List[ExperienceResponse]] = None
     education: Optional[List[EducationResponse]] = None
     skills: Optional[List[SkillResponse]] = None
+    
+    class Config:
+        from_attributes = True
     
 
 class CandidateListResponse(BaseModel):
@@ -111,6 +113,9 @@ class CandidateListResponse(BaseModel):
     location: Optional[str] = None
     years_of_experience: Optional[int] = None
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
     
 
 class CandidateSearchRequest(BaseModel):

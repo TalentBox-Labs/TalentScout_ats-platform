@@ -16,7 +16,7 @@ class JobCreate(BaseModel):
     department: Optional[str] = None
     location: Optional[str] = None
     employment_type: Optional[str] = Field(default="full_time", pattern="^(full_time|part_time|contract|temporary|internship)$")
-    experience_level: Optional[str] = Field(default="mid", pattern="^(entry|mid|senior|lead|executive)$")
+    experience_level: Optional[str] = Field(default="mid", pattern="^(entry|junior|mid|senior|lead|principal)$")
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
     salary_currency: Optional[str] = "USD"
@@ -37,7 +37,7 @@ class JobUpdate(BaseModel):
     salary_max: Optional[int] = None
     salary_currency: Optional[str] = None
     skills_required: Optional[List[str]] = None
-    status: Optional[str] = Field(None, pattern="^(draft|open|closed|on_hold)$")
+    status: Optional[str] = Field(None, pattern="^(draft|open|closed|on_hold|cancelled)$")
 
 
 class JobStageCreate(BaseModel):
@@ -83,7 +83,7 @@ class JobResponse(BaseModel):
     skills_required: List[str]
     status: str
     organization_id: UUID
-    created_by_id: UUID
+    created_by_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     stages: Optional[List[JobStageResponse]] = None

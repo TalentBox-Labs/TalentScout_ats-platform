@@ -82,6 +82,15 @@ class Candidate(Base, TimeStampMixin):
     def __repr__(self):
         return f"<Candidate {self.full_name}>"
 
+    @property
+    def years_of_experience(self):
+        """Compatibility alias for API schemas using years_of_experience."""
+        return self.total_experience_years
+
+    @years_of_experience.setter
+    def years_of_experience(self, value):
+        self.total_experience_years = value
+
 
 class CandidateExperience(Base, TimeStampMixin):
     """Candidate work experience."""

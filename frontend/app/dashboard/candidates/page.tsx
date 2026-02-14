@@ -84,8 +84,8 @@ export default function CandidatesPage() {
                     {candidate.location || 'Location not specified'}
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    {candidate.total_experience_years != null
-                      ? `${candidate.total_experience_years} yrs`
+                    {(candidate.years_of_experience ?? candidate.total_experience_years) != null
+                      ? `${candidate.years_of_experience ?? candidate.total_experience_years} yrs`
                       : 'N/A'}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">

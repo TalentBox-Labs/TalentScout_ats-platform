@@ -109,7 +109,6 @@ async def create_candidate(
         current_company=candidate_data.current_company,
         years_of_experience=candidate_data.years_of_experience,
         organization_id=current_user.organization_id,
-        source=candidate_data.source or "manual",
     )
     
     db.add(new_candidate)

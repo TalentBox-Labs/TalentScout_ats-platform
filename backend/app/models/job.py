@@ -87,6 +87,26 @@ class Job(Base, TimeStampMixin):
     def __repr__(self):
         return f"<Job {self.title}>"
 
+    @property
+    def employment_type(self) -> str:
+        """Compatibility alias for API schemas using employment_type."""
+        return self.job_type.value if isinstance(self.job_type, JobType) else str(self.job_type)
+
+    @employment_type.setter
+    def employment_type(self, value: str) -> None:
+        if value is None:
+            return
+        self.job_type = JobType(value)
+
+    @property
+    def created_by_id(self):
+        """Compatibility alias for API schemas using created_by_id."""
+        return self.created_by
+
+    @created_by_id.setter
+    def created_by_id(self, value) -> None:
+        self.created_by = value
+
 
 class JobStage(Base, TimeStampMixin):
     """Pipeline stages for a job."""
@@ -112,6 +132,11 @@ class JobStage(Base, TimeStampMixin):
     
     def __repr__(self):
         return f"<JobStage {self.name} for Job {self.job_id}>"
+
+    @property
+    def stage_type(self) -> str:
+        """Compatibility field expected by older API responses."""
+        return "custom"
 
 
 class JobTemplate(Base, TimeStampMixin):
@@ -142,3 +167,13 @@ class JobTemplate(Base, TimeStampMixin):
     
     def __repr__(self):
         return f"<JobTemplate {self.name}>"
+
+    @property
+    def employment_type(self) -> str:
+        return self.job_type.value if isinstance(self.job_type, JobType) else str(self.job_type)
+
+    @employment_type.setter
+    def employment_type(self, value: str) -> None:
+        if value is None:
+            return
+        self.job_type = JobType(value)
