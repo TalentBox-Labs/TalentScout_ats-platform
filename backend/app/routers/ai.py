@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.application import Application, ApplicationActivity, ActivityType
 from app.models.candidate import Candidate
 from app.models.job import Job
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 from app.services.ai_service import AIService
 from app.services.parser_service import ParserService
 from app.workers.ai_screening import screen_candidate_task
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 @router.post("/parse-resume", response_model=Dict[str, Any])
 async def parse_resume(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -71,7 +71,7 @@ async def parse_resume(
 @router.post("/screen/{application_id}", response_model=Dict[str, Any])
 async def screen_candidate(
     application_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -83,7 +83,7 @@ async def screen_candidate(
         .join(Job)
         .where(
             Application.id == application_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         )
         .options(
             selectinload(Application.candidate),
@@ -112,7 +112,7 @@ async def screen_candidate(
 async def match_candidates(
     job_id: UUID,
     limit: int = 20,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -122,7 +122,7 @@ async def match_candidates(
     result = await db.execute(
         select(Job).where(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         )
     )
     job = result.scalar_one_or_none()
@@ -159,7 +159,7 @@ async def match_candidates(
     
     result = await db.execute(query, {
         "job_embedding": job_embedding,
-        "org_id": str(current_user.organization_id),
+        "org_id": str(membership.organization_id),
         "limit_val": limit
     })
     candidates = result.fetchall()
@@ -189,7 +189,7 @@ async def match_candidates(
 @router.post("/generate-email", response_model=Dict[str, Any])
 async def generate_email(
     request: EmailGenerationRequest = Body(...),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -217,7 +217,7 @@ async def generate_job_description(
     department: Optional[str] = Form(None),
     experience_level: Optional[str] = Form("mid"),
     skills: Optional[str] = Form(None),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -241,7 +241,7 @@ async def generate_interview_questions(
     candidate_experience: Optional[str] = Form("mid"),
     focus_areas: Optional[str] = Form(None),
     question_count: int = Form(10),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """

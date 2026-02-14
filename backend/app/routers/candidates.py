@@ -12,8 +12,8 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.candidate import Candidate, CandidateExperience, CandidateEducation, CandidateSkill
-from app.middleware.auth import get_current_user
+from app.models.candidate import Candidate, CandidateExperience, CandidateEducation, CandidateSkill, CandidateSource
+from app.middleware.auth import get_current_membership, CurrentMembership
 from app.schemas.candidate import (
     CandidateCreate,
     CandidateUpdate,
@@ -40,13 +40,13 @@ async def list_candidates(
     location: Optional[str] = Query(None, description="Filter by location"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all candidates with pagination and filters.
     """
-    query = select(Candidate).where(Candidate.organization_id == current_user.organization_id)
+    query = select(Candidate).where(Candidate.organization_id == membership.organization_id)
     
     # Apply filters
     if search:
@@ -73,7 +73,7 @@ async def list_candidates(
 @router.post("", response_model=CandidateResponse, status_code=status.HTTP_201_CREATED)
 async def create_candidate(
     candidate_data: CandidateCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -84,7 +84,7 @@ async def create_candidate(
         select(Candidate).where(
             and_(
                 Candidate.email == candidate_data.email,
-                Candidate.organization_id == current_user.organization_id
+                Candidate.organization_id == membership.organization_id
             )
         )
     )
@@ -95,6 +95,27 @@ async def create_candidate(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Candidate with this email already exists",
         )
+    
+    # Get or create source
+    source_id = None
+    if candidate_data.source:
+        result = await db.execute(
+            select(CandidateSource).where(
+                and_(
+                    CandidateSource.name == candidate_data.source,
+                    CandidateSource.organization_id == membership.organization_id
+                )
+            )
+        )
+        source = result.scalar_one_or_none()
+        if not source:
+            source = CandidateSource(
+                name=candidate_data.source,
+                organization_id=membership.organization_id
+            )
+            db.add(source)
+            await db.flush()
+        source_id = source.id
     
     new_candidate = Candidate(
         first_name=candidate_data.first_name,
@@ -107,9 +128,9 @@ async def create_candidate(
         portfolio_url=candidate_data.portfolio_url,
         current_position=candidate_data.current_position,
         current_company=candidate_data.current_company,
-        years_of_experience=candidate_data.years_of_experience,
-        organization_id=current_user.organization_id,
-        source=candidate_data.source or "manual",
+        total_experience_years=candidate_data.total_experience_years,
+        organization_id=membership.organization_id,
+        source_id=source_id,
     )
     
     db.add(new_candidate)
@@ -122,7 +143,7 @@ async def create_candidate(
 @router.get("/{candidate_id}", response_model=CandidateResponse)
 async def get_candidate(
     candidate_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -132,7 +153,7 @@ async def get_candidate(
         select(Candidate)
         .where(and_(
             Candidate.id == candidate_id,
-            Candidate.organization_id == current_user.organization_id
+            Candidate.organization_id == membership.organization_id
         ))
         .options(
             selectinload(Candidate.experiences),
@@ -155,7 +176,7 @@ async def get_candidate(
 async def update_candidate(
     candidate_id: UUID,
     candidate_data: CandidateUpdate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -164,7 +185,7 @@ async def update_candidate(
     result = await db.execute(
         select(Candidate).where(and_(
             Candidate.id == candidate_id,
-            Candidate.organization_id == current_user.organization_id
+            Candidate.organization_id == membership.organization_id
         ))
     )
     candidate = result.scalar_one_or_none()
@@ -178,7 +199,10 @@ async def update_candidate(
     # Update fields
     update_data = candidate_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(candidate, field, value)
+        if field == 'total_experience_years':
+            setattr(candidate, 'total_experience_years', value)
+        else:
+            setattr(candidate, field, value)
     
     await db.commit()
     await db.refresh(candidate)
@@ -189,7 +213,7 @@ async def update_candidate(
 @router.delete("/{candidate_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_candidate(
     candidate_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -198,7 +222,7 @@ async def delete_candidate(
     result = await db.execute(
         select(Candidate).where(and_(
             Candidate.id == candidate_id,
-            Candidate.organization_id == current_user.organization_id
+            Candidate.organization_id == membership.organization_id
         ))
     )
     candidate = result.scalar_one_or_none()
@@ -220,7 +244,7 @@ async def delete_candidate(
 async def upload_resume(
     candidate_id: UUID,
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -230,7 +254,7 @@ async def upload_resume(
     result = await db.execute(
         select(Candidate).where(and_(
             Candidate.id == candidate_id,
-            Candidate.organization_id == current_user.organization_id
+            Candidate.organization_id == membership.organization_id
         ))
     )
     candidate = result.scalar_one_or_none()
@@ -316,7 +340,7 @@ async def upload_resume(
 @router.post("/import", status_code=status.HTTP_202_ACCEPTED)
 async def bulk_import_candidates(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -340,7 +364,7 @@ async def bulk_import_candidates(
 @router.post("/search", response_model=CandidateSearchResponse)
 async def semantic_search_candidates(
     search_request: CandidateSearchRequest,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -373,7 +397,7 @@ async def semantic_search_candidates(
     
     result = await db.execute(query, {
         "query_embedding": query_embedding,
-        "org_id": str(current_user.organization_id),
+        "org_id": str(membership.organization_id),
         "limit_val": search_request.limit or 20
     })
     candidates = result.fetchall()

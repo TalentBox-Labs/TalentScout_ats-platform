@@ -139,3 +139,21 @@ class EmailService:
         """
 
         return await self.send_email(to_email, subject, body, html_body)
+
+    async def send_email_async(self, to_email: str, subject: str, body: str, html_body: str = None, communication_id: str = None) -> Dict[str, Any]:
+        """
+        Send an email asynchronously (queue for background processing).
+        
+        Args:
+            to_email: Recipient email address
+            subject: Email subject
+            body: Email body (plain text)
+            html_body: HTML email body (optional)
+            communication_id: Associated communication record ID
+            
+        Returns:
+            Dict with status and message_id
+        """
+        # For now, just call the synchronous version
+        # In production, this should queue to Celery/RabbitMQ
+        return await self.send_email(to_email, subject, body, html_body)

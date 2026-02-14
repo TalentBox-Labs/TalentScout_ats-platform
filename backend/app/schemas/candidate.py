@@ -19,7 +19,7 @@ class CandidateCreate(BaseModel):
     portfolio_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    years_of_experience: Optional[int] = None
+    total_experience_years: Optional[int] = None
     source: Optional[str] = "manual"
 
 
@@ -35,7 +35,7 @@ class CandidateUpdate(BaseModel):
     portfolio_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    years_of_experience: Optional[int] = None
+    total_experience_years: Optional[int] = None
 
 
 class ExperienceResponse(BaseModel):

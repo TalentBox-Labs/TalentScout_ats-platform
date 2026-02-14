@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.get("/automation", response_model=Dict[str, Any])
 async def get_automation_settings(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -40,7 +40,7 @@ async def get_automation_settings(
 @router.put("/automation", response_model=Dict[str, Any])
 async def update_automation_settings(
     settings: Dict[str, Any],
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """

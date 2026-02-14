@@ -1,7 +1,7 @@
 """
 Authentication middleware for JWT verification and role-based access control.
 """
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from functools import wraps
 
 from fastapi import Depends, HTTPException, status
@@ -10,18 +10,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, OrganizationMember
 from app.utils.security import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-async def get_current_user(
+class CurrentMembership:
+    """Container for current user membership information."""
+    
+    def __init__(self, user: User, organization_id: Optional[str], role: Optional[str]):
+        self.user = user
+        self.organization_id = organization_id
+        self.role = role
+
+
+async def get_current_membership(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
-) -> User:
+) -> CurrentMembership:
     """
-    Get current authenticated user from JWT token.
+    Get current authenticated user membership information.
+    
+    Returns:
+        CurrentMembership with user, organization_id, and role
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -51,17 +63,27 @@ async def get_current_user(
             detail="User account is inactive",
         )
     
-    # Get user's organization
-    from app.models.user import OrganizationMember
+    # Get user's organization membership
     result = await db.execute(
         select(OrganizationMember)
         .where(OrganizationMember.user_id == user.id, OrganizationMember.is_active == True)
         .limit(1)
     )
     member = result.scalar_one_or_none()
-    user.organization_id = member.organization_id if member else None
     
-    return user
+    organization_id = member.organization_id if member else None
+    role = member.role.value if member else None
+    
+    return CurrentMembership(user=user, organization_id=organization_id, role=role)
+
+
+async def get_current_user(
+    membership: CurrentMembership = Depends(get_current_membership),
+) -> User:
+    """
+    Get current authenticated user (legacy compatibility).
+    """
+    return membership.user
 
 
 async def get_current_active_user(
@@ -87,13 +109,13 @@ class RoleChecker:
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
     
-    async def __call__(self, current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in self.allowed_roles:
+    async def __call__(self, membership: CurrentMembership = Depends(get_current_membership)) -> CurrentMembership:
+        if membership.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {', '.join(self.allowed_roles)}",
             )
-        return current_user
+        return membership
 
 
 def require_roles(allowed_roles: List[str]):
@@ -103,13 +125,13 @@ def require_roles(allowed_roles: List[str]):
     """
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, current_user: User = Depends(get_current_user), **kwargs):
-            if current_user.role not in allowed_roles:
+        async def wrapper(*args, membership: CurrentMembership = Depends(get_current_membership), **kwargs):
+            if membership.role not in allowed_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Access denied. Required roles: {', '.join(allowed_roles)}",
                 )
-            return await func(*args, current_user=current_user, **kwargs)
+            return await func(*args, membership=membership, **kwargs)
         return wrapper
     return decorator
 
@@ -123,11 +145,11 @@ class OrganizationChecker:
     async def __call__(
         self,
         organization_id: str,
-        current_user: User = Depends(get_current_user),
-    ) -> User:
-        if str(current_user.organization_id) != organization_id:
+        membership: CurrentMembership = Depends(get_current_membership),
+    ) -> CurrentMembership:
+        if str(membership.organization_id) != organization_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this organization's resources",
             )
-        return current_user
+        return membership

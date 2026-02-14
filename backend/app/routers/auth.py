@@ -29,8 +29,8 @@ from app.utils.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    get_current_user,
 )
+from app.middleware.auth import get_current_user
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])

@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.communication import EmailTemplate, Communication, EmailSequence
 from app.models.candidate import Candidate
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 from app.schemas.communication import (
     EmailTemplateCreate,
     EmailTemplateUpdate,
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/communications", tags=["communications"])
 
 @router.get("/email-templates", response_model=List[EmailTemplateResponse])
 async def list_email_templates(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -42,7 +42,7 @@ async def list_email_templates(
         select(EmailTemplate)
         .where(
             or_(
-                EmailTemplate.organization_id == current_user.organization_id,
+                EmailTemplate.organization_id == membership.organization_id,
                 EmailTemplate.is_system_template == True
             )
         )
@@ -56,7 +56,7 @@ async def list_email_templates(
 @router.post("/email-templates", response_model=EmailTemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_email_template(
     template_data: EmailTemplateCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -68,7 +68,7 @@ async def create_email_template(
         body=template_data.body,
         template_type=template_data.template_type,
         variables=template_data.variables or [],
-        organization_id=current_user.organization_id,
+        organization_id=membership.organization_id,
         is_system_template=False,
     )
     
@@ -83,7 +83,7 @@ async def create_email_template(
 async def update_email_template(
     template_id: UUID,
     template_data: EmailTemplateUpdate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -93,7 +93,7 @@ async def update_email_template(
         select(EmailTemplate).where(
             and_(
                 EmailTemplate.id == template_id,
-                EmailTemplate.organization_id == current_user.organization_id
+                EmailTemplate.organization_id == membership.organization_id
             )
         )
     )
@@ -119,7 +119,7 @@ async def update_email_template(
 @router.post("/send", response_model=CommunicationResponse, status_code=status.HTTP_202_ACCEPTED)
 async def send_email(
     email_data: CommunicationCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -130,7 +130,7 @@ async def send_email(
         select(Candidate).where(
             and_(
                 Candidate.id == email_data.candidate_id,
-                Candidate.organization_id == current_user.organization_id
+                Candidate.organization_id == membership.organization_id
             )
         )
     )
@@ -178,8 +178,8 @@ async def send_email(
         channel="email",
         direction="outbound",
         status="queued",
-        sent_by_id=current_user.id,
-        organization_id=current_user.organization_id,
+        sent_by_id=membership.user.id,
+        organization_id=membership.organization_id,
     )
     
     db.add(new_communication)
@@ -204,14 +204,14 @@ async def get_email_history(
     application_id: Optional[UUID] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get email history.
     """
     query = select(Communication).where(
-        Communication.organization_id == current_user.organization_id
+        Communication.organization_id == membership.organization_id
     )
     
     if candidate_id:
@@ -230,33 +230,32 @@ async def get_email_history(
 @router.post("/email-sequences", response_model=EmailSequenceResponse, status_code=status.HTTP_201_CREATED)
 async def create_email_sequence(
     sequence_data: EmailSequenceCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Create an email drip campaign sequence.
     """
+    # Convert steps to JSON format for storage
+    emails = [
+        {
+            "template_id": str(step.template_id),
+            "delay_days": step.delay_days,
+            "order": step.order
+        }
+        for step in sequence_data.steps
+    ]
+    
     new_sequence = EmailSequence(
         name=sequence_data.name,
         description=sequence_data.description,
         trigger_event=sequence_data.trigger_event,
         is_active=True,
-        organization_id=current_user.organization_id,
+        organization_id=membership.organization_id,
+        emails=emails,
     )
     
     db.add(new_sequence)
-    await db.flush()
-    
-    # Add steps
-    for step_data in sequence_data.steps:
-        step = EmailSequenceStep(
-            sequence_id=new_sequence.id,
-            template_id=step_data.template_id,
-            delay_days=step_data.delay_days,
-            order=step_data.order,
-        )
-        db.add(step)
-    
     await db.commit()
     await db.refresh(new_sequence)
     
@@ -267,7 +266,7 @@ async def create_email_sequence(
 async def enroll_in_email_sequence(
     sequence_id: UUID,
     enroll_data: EmailSequenceEnrollRequest,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -278,7 +277,7 @@ async def enroll_in_email_sequence(
         select(EmailSequence).where(
             and_(
                 EmailSequence.id == sequence_id,
-                EmailSequence.organization_id == current_user.organization_id
+                EmailSequence.organization_id == membership.organization_id
             )
         )
     )
@@ -295,7 +294,7 @@ async def enroll_in_email_sequence(
         select(Candidate).where(
             and_(
                 Candidate.id == enroll_data.candidate_id,
-                Candidate.organization_id == current_user.organization_id
+                Candidate.organization_id == membership.organization_id
             )
         )
     )

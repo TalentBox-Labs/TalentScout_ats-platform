@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 
 @router.get("", response_model=Dict[str, Any])
 async def get_integrations_status(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -57,7 +57,7 @@ async def get_integrations_status(
 @router.post("/{integration_id}/connect", response_model=Dict[str, Any])
 async def connect_integration(
     integration_id: str,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -75,7 +75,7 @@ async def connect_integration(
 @router.post("/{integration_id}/disconnect", response_model=Dict[str, Any])
 async def disconnect_integration(
     integration_id: str,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -93,7 +93,7 @@ async def disconnect_integration(
 async def update_integration_config(
     integration_id: str,
     config: Dict[str, Any],
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """

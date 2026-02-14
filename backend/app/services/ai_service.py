@@ -3,12 +3,18 @@ from typing import Dict, Any, List, Optional
 from openai import AsyncOpenAI
 from app.config import settings
 
-# Initialize AsyncOpenAI client
-client = AsyncOpenAI(api_key=settings.openai_api_key)
+# Initialize AsyncOpenAI client only if API key is provided
+client = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
 
 
 class AIService:
     """Service for AI-powered features."""
+    
+    @staticmethod
+    def _check_ai_available():
+        """Check if AI features are available."""
+        if client is None:
+            raise ValueError("AI features are not available. Please set OPENAI_API_KEY environment variable.")
     
     @staticmethod
     async def parse_resume_text(resume_text: str) -> Dict[str, Any]:
@@ -21,6 +27,7 @@ class AIService:
         Returns:
             Structured resume data
         """
+        AIService._check_ai_available()
         prompt = f"""
         Extract structured information from the following resume. Return a JSON object with this structure:
         {{
@@ -399,3 +406,47 @@ class AIService:
         except Exception as e:
             print(f"Error generating questions: {str(e)}")
             return []
+
+    @staticmethod
+    async def enhance_email(email_body: str) -> Dict[str, Any]:
+        """
+        Enhance email content using AI for better engagement.
+        
+        Args:
+            email_body: Original email body
+            
+        Returns:
+            Dict with enhanced body and suggestions
+        """
+        prompt = f"""
+        Enhance the following email for better engagement and professionalism.
+        Make it more compelling while maintaining the original intent.
+        
+        Original email:
+        {email_body}
+        
+        Return a JSON object with:
+        {{
+            "body": "enhanced email body",
+            "improvements": ["list of improvements made"]
+        }}
+        """
+        
+        try:
+            response = await client.chat.completions.create(
+                model=settings.openai_model,
+                messages=[
+                    {"role": "system", "content": "You are a professional email writer who enhances communication."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.7,
+            )
+            
+            import json
+            result = json.loads(response.choices[0].message.content)
+            return result
+            
+        except Exception as e:
+            print(f"Error enhancing email: {str(e)}")
+            return {"body": email_body, "improvements": []}

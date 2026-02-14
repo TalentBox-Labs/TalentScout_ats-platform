@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     allowed_hosts: str = "*"
     
     # OpenAI
-    openai_api_key: str
+    openai_api_key: str = ""  # Optional - AI features disabled if not set
     openai_model: str = "gpt-4-turbo-preview"
     openai_embedding_model: str = "text-embedding-3-small"
     

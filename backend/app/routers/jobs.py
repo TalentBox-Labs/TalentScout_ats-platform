@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.job import Job, JobStage, JobTemplate
 from app.models.application import Application
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 from app.schemas.job import (
     JobCreate,
     JobUpdate,
@@ -37,13 +37,13 @@ async def list_jobs(
     location: Optional[str] = Query(None, description="Filter by location"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all jobs with filtering and pagination.
     """
-    query = select(Job).where(Job.organization_id == current_user.organization_id)
+    query = select(Job).where(Job.organization_id == membership.organization_id)
     
     # Apply filters
     if status_filter:
@@ -76,7 +76,7 @@ async def list_jobs(
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -89,15 +89,15 @@ async def create_job(
         responsibilities=job_data.responsibilities,
         department=job_data.department,
         location=job_data.location,
-        employment_type=job_data.employment_type,
+        job_type=job_data.employment_type,  # Align with model field
         experience_level=job_data.experience_level,
         salary_min=job_data.salary_min,
         salary_max=job_data.salary_max,
         salary_currency=job_data.salary_currency,
         skills_required=job_data.skills_required or [],
         status="draft",
-        organization_id=current_user.organization_id,
-        created_by_id=current_user.id,
+        organization_id=membership.organization_id,
+        created_by=membership.user.id,
     )
     
     db.add(new_job)
@@ -133,7 +133,7 @@ async def create_job(
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job(
     job_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -143,7 +143,7 @@ async def get_job(
         select(Job)
         .where(and_(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
         .options(selectinload(Job.stages))
     )
@@ -161,7 +161,7 @@ async def get_job(
 async def update_job(
     job_id: UUID,
     job_data: JobUpdate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -170,7 +170,7 @@ async def update_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -184,7 +184,10 @@ async def update_job(
     # Update fields
     update_data = job_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(job, field, value)
+        if field == 'employment_type':
+            setattr(job, 'job_type', value)  # Map to correct field
+        else:
+            setattr(job, field, value)
     
     await db.commit()
     await db.refresh(job)
@@ -199,7 +202,7 @@ async def update_job(
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(
     job_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -208,7 +211,7 @@ async def delete_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -228,7 +231,7 @@ async def delete_job(
 @router.post("/{job_id}/publish", response_model=JobResponse)
 async def publish_job(
     job_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -237,7 +240,7 @@ async def publish_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -265,7 +268,7 @@ async def publish_job(
 async def create_job_stage(
     job_id: UUID,
     stage_data: JobStageCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -275,7 +278,7 @@ async def create_job_stage(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -290,7 +293,7 @@ async def create_job_stage(
         job_id=job_id,
         name=stage_data.name,
         order=stage_data.order,
-        stage_type=stage_data.stage_type,
+        # Note: stage_type not stored in model as per schema alignment
     )
     
     db.add(new_stage)
@@ -305,7 +308,7 @@ async def update_job_stage(
     job_id: UUID,
     stage_id: UUID,
     stage_data: JobStageUpdate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -317,7 +320,7 @@ async def update_job_stage(
         .where(and_(
             JobStage.id == stage_id,
             JobStage.job_id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     stage = result.scalar_one_or_none()
@@ -342,7 +345,7 @@ async def update_job_stage(
 async def delete_job_stage(
     job_id: UUID,
     stage_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -354,7 +357,7 @@ async def delete_job_stage(
         .where(and_(
             JobStage.id == stage_id,
             JobStage.job_id == job_id,
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         ))
     )
     stage = result.scalar_one_or_none()
@@ -374,7 +377,7 @@ async def delete_job_stage(
 # Job Templates endpoints
 @router.get("/templates/list", response_model=List[JobTemplateResponse])
 async def list_job_templates(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -383,7 +386,7 @@ async def list_job_templates(
     result = await db.execute(
         select(JobTemplate).where(
             or_(
-                JobTemplate.organization_id == current_user.organization_id,
+                JobTemplate.organization_id == membership.organization_id,
                 JobTemplate.is_public == True
             )
         ).order_by(JobTemplate.created_at.desc())
@@ -396,7 +399,7 @@ async def list_job_templates(
 @router.post("/templates", response_model=JobTemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_template(
     template_data: JobTemplateCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -409,11 +412,11 @@ async def create_job_template(
         requirements=template_data.requirements,
         responsibilities=template_data.responsibilities,
         department=template_data.department,
-        employment_type=template_data.employment_type,
+        job_type=template_data.employment_type,  # Align with model field
         experience_level=template_data.experience_level,
         skills_required=template_data.skills_required or [],
         is_public=False,
-        organization_id=current_user.organization_id,
+        organization_id=membership.organization_id,
     )
     
     db.add(new_template)
@@ -426,7 +429,7 @@ async def create_job_template(
 @router.post("/from-template/{template_id}", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_from_template(
     template_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -437,7 +440,7 @@ async def create_job_from_template(
             and_(
                 JobTemplate.id == template_id,
                 or_(
-                    JobTemplate.organization_id == current_user.organization_id,
+                    JobTemplate.organization_id == membership.organization_id,
                     JobTemplate.is_public == True
                 )
             )
@@ -457,12 +460,12 @@ async def create_job_from_template(
         requirements=template.requirements,
         responsibilities=template.responsibilities,
         department=template.department,
-        employment_type=template.employment_type,
+        job_type=template.job_type,  # Align with model field
         experience_level=template.experience_level,
         skills_required=template.skills_required,
         status="draft",
-        organization_id=current_user.organization_id,
-        created_by_id=current_user.id,
+        organization_id=membership.organization_id,
+        created_by=membership.user.id,
     )
     
     db.add(new_job)

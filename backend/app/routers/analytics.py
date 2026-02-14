@@ -13,14 +13,14 @@ from app.models.user import User
 from app.models.application import Application
 from app.models.job import Job, JobStage
 from app.models.candidate import Candidate
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
 @router.get("", response_model=Dict[str, Any])
 async def get_analytics(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -33,16 +33,16 @@ async def get_analytics(
 
     # Total applications
     result = await db.execute(
-        select(func.count(Application.id)).where(
-            Application.organization_id == current_user.organization_id
-        )
+        select(func.count(Application.id))
+        .join(Job, Application.job_id == Job.id)
+        .where(Job.organization_id == membership.organization_id)
     )
     total_applications = result.scalar() or 0
 
     # Total jobs
     result = await db.execute(
         select(func.count(Job.id)).where(
-            Job.organization_id == current_user.organization_id
+            Job.organization_id == membership.organization_id
         )
     )
     total_jobs = result.scalar() or 0
@@ -52,8 +52,10 @@ async def get_analytics(
     result = await db.execute(
         select(func.avg(
             func.extract('epoch', Application.updated_at - Application.created_at) / 86400
-        )).where(and_(
-            Application.organization_id == current_user.organization_id,
+        ))
+        .join(Job, Application.job_id == Job.id)
+        .where(and_(
+            Job.organization_id == membership.organization_id,
             Application.status == 'hired'
         ))
     )
@@ -61,8 +63,10 @@ async def get_analytics(
 
     # Conversion rate (hired / total applications)
     result = await db.execute(
-        select(func.count(Application.id)).where(and_(
-            Application.organization_id == current_user.organization_id,
+        select(func.count(Application.id))
+        .join(Job, Application.job_id == Job.id)
+        .where(and_(
+            Job.organization_id == membership.organization_id,
             Application.status == 'hired'
         ))
     )
@@ -75,8 +79,10 @@ async def get_analytics(
         func.count(Application.id).label('count')
     ).join(
         Application, Application.current_stage == JobStage.id
+    ).join(
+        Job, Application.job_id == Job.id
     ).where(
-        Application.organization_id == current_user.organization_id
+        Job.organization_id == membership.organization_id
     ).group_by(JobStage.name)
 
     result = await db.execute(stages_query)
@@ -94,7 +100,7 @@ async def get_analytics(
     ).join(
         Application, Job.id == Application.job_id
     ).where(
-        Job.organization_id == current_user.organization_id
+        Job.organization_id == membership.organization_id
     ).group_by(
         Job.title
     ).order_by(
@@ -115,8 +121,10 @@ async def get_analytics(
 
         # Applications in this month
         result = await db.execute(
-            select(func.count(Application.id)).where(and_(
-                Application.organization_id == current_user.organization_id,
+            select(func.count(Application.id))
+            .join(Job, Application.job_id == Job.id)
+            .where(and_(
+                Job.organization_id == membership.organization_id,
                 Application.created_at >= month_start,
                 Application.created_at <= month_end
             ))
@@ -125,8 +133,10 @@ async def get_analytics(
 
         # Hires in this month
         result = await db.execute(
-            select(func.count(Application.id)).where(and_(
-                Application.organization_id == current_user.organization_id,
+            select(func.count(Application.id))
+            .join(Job, Application.job_id == Job.id)
+            .where(and_(
+                Job.organization_id == membership.organization_id,
                 Application.status == 'hired',
                 Application.updated_at >= month_start,
                 Application.updated_at <= month_end

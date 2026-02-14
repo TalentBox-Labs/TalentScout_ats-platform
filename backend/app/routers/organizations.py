@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User, Organization
-from app.middleware.auth import get_current_user, RoleChecker
+from app.middleware.auth import get_current_membership, CurrentMembership, RoleChecker
 from app.schemas.organization import (
     OrganizationCreate,
     OrganizationUpdate,
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 @router.get("", response_model=List[OrganizationResponse])
 async def list_organizations(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -35,7 +35,7 @@ async def list_organizations(
     result = await db.execute(
         select(Organization)
         .join(User)
-        .where(User.id == current_user.id)
+        .where(User.id == membership.user.id)
         .options(selectinload(Organization.members))
     )
     organizations = result.scalars().all()
@@ -46,7 +46,7 @@ async def list_organizations(
 @router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     org_data: OrganizationCreate,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -63,7 +63,7 @@ async def create_organization(
     await db.flush()
     
     # Make current user the admin of this organization
-    current_user.organization_id = new_org.id
+    membership.organization_id = new_org.id
     current_user.role = "admin"
     
     await db.commit()
@@ -75,14 +75,14 @@ async def create_organization(
 @router.get("/{organization_id}", response_model=OrganizationResponse)
 async def get_organization(
     organization_id: UUID,
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get organization details.
     """
     # Verify user has access to this organization
-    if current_user.organization_id != organization_id:
+    if membership.organization_id != organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -115,7 +115,7 @@ async def update_organization(
     Update organization details (admin only).
     """
     # Verify user has access to this organization
-    if current_user.organization_id != organization_id:
+    if membership.organization_id != organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -158,7 +158,7 @@ async def invite_member(
     Admin and managers can invite members.
     """
     # Verify user has access to this organization
-    if current_user.organization_id != organization_id:
+    if membership.organization_id != organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -203,7 +203,7 @@ async def update_member_role(
     Update a member's role (admin only).
     """
     # Verify user has access to this organization
-    if current_user.organization_id != organization_id:
+    if membership.organization_id != organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -226,7 +226,7 @@ async def update_member_role(
         )
     
     # Prevent self-demotion from admin
-    if user.id == current_user.id and member_data.role != "admin":
+    if user.id == membership.user.id and member_data.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change your own admin role",
@@ -250,14 +250,14 @@ async def remove_member(
     Remove a member from the organization (admin only).
     """
     # Verify user has access to this organization
-    if current_user.organization_id != organization_id:
+    if membership.organization_id != organization_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
         )
     
     # Prevent self-removal
-    if user_id == current_user.id:
+    if user_id == membership.user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot remove yourself from the organization",

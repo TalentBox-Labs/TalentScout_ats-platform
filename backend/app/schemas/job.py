@@ -15,8 +15,8 @@ class JobCreate(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    employment_type: Optional[str] = Field(default="full_time", pattern="^(full_time|part_time|contract|temporary|internship)$")
-    experience_level: Optional[str] = Field(default="mid", pattern="^(entry|mid|senior|lead|executive)$")
+    job_type: Optional[str] = Field(default="full_time", pattern="^(full_time|part_time|contract|internship|temporary)$")
+    experience_level: Optional[str] = Field(default="mid", pattern="^(entry|junior|mid|senior|lead|principal)$")
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
     salary_currency: Optional[str] = "USD"
@@ -31,7 +31,7 @@ class JobUpdate(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    employment_type: Optional[str] = None
+    job_type: Optional[str] = None
     experience_level: Optional[str] = None
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
@@ -44,7 +44,6 @@ class JobStageCreate(BaseModel):
     """Schema for creating a job stage."""
     name: str = Field(..., min_length=1, max_length=100)
     order: int = Field(..., ge=1)
-    stage_type: str = Field(default="custom", pattern="^(application|screening|interview|assessment|offer|hired|rejected|custom)$")
 
 
 class JobStageUpdate(BaseModel):
@@ -75,7 +74,7 @@ class JobResponse(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    employment_type: str
+    job_type: str
     experience_level: str
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
@@ -116,7 +115,7 @@ class JobTemplateCreate(BaseModel):
     requirements: Optional[str] = None
     responsibilities: Optional[str] = None
     department: Optional[str] = None
-    employment_type: str = Field(default="full_time")
+    job_type: str = Field(default="full_time")
     experience_level: str = Field(default="mid")
     skills_required: Optional[List[str]] = None
 
