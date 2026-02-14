@@ -77,6 +77,11 @@ class Candidate(Base, TimeStampMixin):
         """Get candidate's full name."""
         return f"{self.first_name} {self.last_name}"
     
+    @property
+    def source_name(self):
+        """Get the source name from the related CandidateSource."""
+        return self.source.name if self.source else None
+    
     def __repr__(self):
         return f"<Candidate {self.full_name}>"
 

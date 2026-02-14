@@ -91,9 +91,17 @@ async def _parse_resume_async(candidate_id: str, resume_url: str, content_type: 
         if not resume_text:
             raise ValueError("Failed to extract text from resume")
         
-        # Use AI to parse resume and extract structured data
-        ai_service = AIService()
-        parsed_data = await ai_service.parse_resume_text(resume_text)
+        # Use AI to parse resume and extract structured data (if available)
+        parsed_data = {}
+        if settings.openai_api_key:
+            try:
+                ai_service = AIService()
+                parsed_data = await ai_service.parse_resume_text(resume_text)
+            except ValueError as e:
+                # AI not available, continue without AI enrichment
+                print(f"AI parsing skipped: {str(e)}")
+        else:
+            print("AI parsing skipped: OPENAI_API_KEY not set")
         
         # Normalize parsed_data structure
         contact = parsed_data.get("contact", {})

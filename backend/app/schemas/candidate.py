@@ -91,13 +91,17 @@ class CandidateResponse(BaseModel):
     current_company: Optional[str] = None
     total_experience_years: Optional[int] = None
     summary: Optional[str] = None
-    source: str
+    source: Optional[str] = Field(default=None, alias="source_name")
     organization_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
     experiences: Optional[List[ExperienceResponse]] = None
     education: Optional[List[EducationResponse]] = None
     skills: Optional[List[SkillResponse]] = None
+    
+    class Config:
+        from_attributes = True
+        allow_population_by_field_name = True
     
     class Config:
         from_attributes = True

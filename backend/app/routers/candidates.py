@@ -158,7 +158,8 @@ async def get_candidate(
         .options(
             selectinload(Candidate.experiences),
             selectinload(Candidate.education),
-            selectinload(Candidate.skills)
+            selectinload(Candidate.skills),
+            selectinload(Candidate.source)
         )
     )
     candidate = result.scalar_one_or_none()
