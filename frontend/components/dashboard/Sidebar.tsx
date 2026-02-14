@@ -5,11 +5,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Briefcase,
   Users,
 } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -19,11 +21,20 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => apiClient.getCurrentUser(),
+  });
+
+  const fullName = user ? `${user.first_name} ${user.last_name}` : 'Loading...';
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
+    : '--';
 
   return (
-    <div className="flex w-64 flex-col bg-white border-r border-gray-200">
+    <div className="flex w-64 flex-col border-r border-border bg-background">
       {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-gray-200">
+      <div className="flex h-16 items-center border-b border-border px-6">
         <h1 className="text-xl font-bold text-blue-600">TalentScout</h1>
       </div>
 
@@ -42,7 +53,7 @@ export function Sidebar() {
                 ${
                   isActive
                     ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }
               `}
             >
@@ -54,14 +65,14 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-border p-4">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-            JD
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
-            <p className="text-xs text-gray-500 truncate">Admin</p>
+            <p className="truncate text-sm font-medium text-foreground">{fullName}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email || ' '}</p>
           </div>
         </div>
       </div>
