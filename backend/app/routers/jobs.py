@@ -89,7 +89,7 @@ async def create_job(
         responsibilities=job_data.responsibilities,
         department=job_data.department,
         location=job_data.location,
-        job_type=job_data.employment_type,  # Align with model field
+        job_type=job_data.job_type,
         experience_level=job_data.experience_level,
         salary_min=job_data.salary_min,
         salary_max=job_data.salary_max,
@@ -109,11 +109,11 @@ async def create_job(
     
     # Create default pipeline stages
     default_stages = [
-        {"name": "Applied", "order": 1, "type": "application"},
-        {"name": "Screening", "order": 2, "type": "screening"},
-        {"name": "Interview", "order": 3, "type": "interview"},
-        {"name": "Offer", "order": 4, "type": "offer"},
-        {"name": "Hired", "order": 5, "type": "hired"},
+        {"name": "Applied", "order": 1},
+        {"name": "Screening", "order": 2},
+        {"name": "Interview", "order": 3},
+        {"name": "Offer", "order": 4},
+        {"name": "Hired", "order": 5},
     ]
     
     for stage_data in default_stages:
@@ -121,7 +121,6 @@ async def create_job(
             job_id=new_job.id,
             name=stage_data["name"],
             order=stage_data["order"],
-            stage_type=stage_data["type"],
         )
         db.add(stage)
     
@@ -184,10 +183,7 @@ async def update_job(
     # Update fields
     update_data = job_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field == 'employment_type':
-            setattr(job, 'job_type', value)  # Map to correct field
-        else:
-            setattr(job, field, value)
+        setattr(job, field, value)
     
     await db.commit()
     await db.refresh(job)
@@ -412,7 +408,7 @@ async def create_job_template(
         requirements=template_data.requirements,
         responsibilities=template_data.responsibilities,
         department=template_data.department,
-        job_type=template_data.employment_type,  # Align with model field
+        job_type=template_data.job_type,
         experience_level=template_data.experience_level,
         skills_required=template_data.skills_required or [],
         is_public=False,

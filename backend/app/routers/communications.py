@@ -164,9 +164,13 @@ async def send_email(
     
     # Use AI to enhance email if requested
     if email_data.use_ai_enhancement:
-        ai_service = AIService()
-        enhanced = await ai_service.enhance_email(body)
-        body = enhanced.get("body", body)
+        try:
+            ai_service = AIService()
+            enhanced = await ai_service.enhance_email(body)
+            body = enhanced.get("body", body)
+        except ValueError:
+            # AI not available, continue with original body
+            pass
     
     # Create communication record
     new_communication = Communication(

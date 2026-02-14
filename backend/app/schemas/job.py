@@ -58,7 +58,6 @@ class JobStageResponse(BaseModel):
     job_id: UUID
     name: str
     order: int
-    stage_type: str
     created_at: datetime
     
     class Config:
@@ -82,7 +81,7 @@ class JobResponse(BaseModel):
     skills_required: List[str]
     status: str
     organization_id: UUID
-    created_by_id: UUID
+    created_by: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
     stages: Optional[List[JobStageResponse]] = None
@@ -97,7 +96,7 @@ class JobListResponse(BaseModel):
     title: str
     department: Optional[str] = None
     location: Optional[str] = None
-    employment_type: str
+    job_type: str
     experience_level: str
     status: str
     created_at: datetime
@@ -129,7 +128,7 @@ class JobTemplateResponse(BaseModel):
     requirements: Optional[str] = None
     responsibilities: Optional[str] = None
     department: Optional[str] = None
-    employment_type: str
+    job_type: str
     experience_level: str
     skills_required: List[str]
     is_public: bool

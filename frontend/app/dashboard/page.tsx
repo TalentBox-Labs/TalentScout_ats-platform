@@ -56,7 +56,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
             <Plus className="w-4 h-4 mr-2" />
             Quick Actions
           </Button>
@@ -75,7 +75,7 @@ export default function DashboardPage() {
           <div className="text-blue-200 text-xs mt-2">+12% from last month</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow duration-200">
+        <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between mb-4">
             <Users className="w-8 h-8 opacity-80" />
             <Sparkles className="w-5 h-5 opacity-60" />

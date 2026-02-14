@@ -199,10 +199,7 @@ async def update_candidate(
     # Update fields
     update_data = candidate_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
-        if field == 'total_experience_years':
-            setattr(candidate, 'total_experience_years', value)
-        else:
-            setattr(candidate, field, value)
+        setattr(candidate, field, value)
     
     await db.commit()
     await db.refresh(candidate)

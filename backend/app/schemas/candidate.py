@@ -89,7 +89,7 @@ class CandidateResponse(BaseModel):
     resume_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    years_of_experience: Optional[int] = None
+    total_experience_years: Optional[int] = None
     summary: Optional[str] = None
     source: str
     organization_id: UUID
@@ -98,6 +98,9 @@ class CandidateResponse(BaseModel):
     experiences: Optional[List[ExperienceResponse]] = None
     education: Optional[List[EducationResponse]] = None
     skills: Optional[List[SkillResponse]] = None
+    
+    class Config:
+        from_attributes = True
     
 
 class CandidateListResponse(BaseModel):
@@ -109,8 +112,11 @@ class CandidateListResponse(BaseModel):
     current_position: Optional[str] = None
     current_company: Optional[str] = None
     location: Optional[str] = None
-    years_of_experience: Optional[int] = None
+    total_experience_years: Optional[int] = None
     created_at: datetime
+    
+    class Config:
+        from_attributes = True
     
 
 class CandidateSearchRequest(BaseModel):

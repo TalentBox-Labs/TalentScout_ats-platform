@@ -93,6 +93,7 @@ class AIService:
         Returns:
             AI-generated summary
         """
+        AIService._check_ai_available()
         prompt = f"""
         Create a concise 2-3 sentence professional summary for this candidate:
         
@@ -132,6 +133,7 @@ class AIService:
         Returns:
             Embedding vector
         """
+        AIService._check_ai_available()
         try:
             response = await client.embeddings.create(
                 model=settings.openai_embedding_model,
@@ -159,6 +161,7 @@ class AIService:
         Returns:
             Screening results with score and insights
         """
+        AIService._check_ai_available()
         # Format candidate profile
         candidate_profile = f"""
         Name: {candidate_data.get('name', 'N/A')}
@@ -237,6 +240,7 @@ class AIService:
         Returns:
             Dict with subject and body
         """
+        AIService._check_ai_available()
         email_templates = {
             "rejection": "Write a respectful rejection email",
             "interview_invite": "Write an interview invitation email",
@@ -302,6 +306,7 @@ class AIService:
         Returns:
             Dict with title, description, requirements, responsibilities, suggested_skills
         """
+        AIService._check_ai_available()
         skills_text = ", ".join(key_skills) if key_skills else "relevant skills for the role"
         
         prompt = f"""
@@ -365,6 +370,7 @@ class AIService:
         Returns:
             List of interview questions
         """
+        AIService._check_ai_available()
         # Format job context
         job_description = f"""
         Title: {job_context.get('title', 'N/A')}
@@ -418,6 +424,7 @@ class AIService:
         Returns:
             Dict with enhanced body and suggestions
         """
+        AIService._check_ai_available()
         prompt = f"""
         Enhance the following email for better engagement and professionalism.
         Make it more compelling while maintaining the original intent.

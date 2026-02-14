@@ -10,7 +10,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.models.user import User, Organization
+from app.models.user import User, Organization, OrganizationMember, UserRole
 from app.middleware.auth import get_current_membership, CurrentMembership, RoleChecker
 from app.schemas.organization import (
     OrganizationCreate,
@@ -63,9 +63,12 @@ async def create_organization(
     await db.flush()
     
     # Make current user the admin of this organization
-    membership.organization_id = new_org.id
-    current_user.role = "admin"
-    
+    member = OrganizationMember(
+        organization_id=new_org.id,
+        user_id=membership.user.id,
+        role=UserRole.ADMIN
+    )
+    db.add(member)
     await db.commit()
     await db.refresh(new_org)
     
@@ -108,14 +111,14 @@ async def get_organization(
 async def update_organization(
     organization_id: UUID,
     org_data: OrganizationUpdate,
-    current_user: User = Depends(RoleChecker(["admin"])),
+    membership: CurrentMembership = Depends(RoleChecker(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Update organization details (admin only).
     """
     # Verify user has access to this organization
-    if membership.organization_id != organization_id:
+    if str(membership.organization_id) != str(organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -150,7 +153,7 @@ async def update_organization(
 async def invite_member(
     organization_id: UUID,
     invite_data: OrganizationInvite,
-    current_user: User = Depends(RoleChecker(["admin", "manager"])),
+    membership: CurrentMembership = Depends(RoleChecker(["admin", "manager"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -158,7 +161,7 @@ async def invite_member(
     Admin and managers can invite members.
     """
     # Verify user has access to this organization
-    if membership.organization_id != organization_id:
+    if str(membership.organization_id) != str(organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -171,17 +174,33 @@ async def invite_member(
     existing_user = result.scalar_one_or_none()
     
     if existing_user:
-        # Update existing user's organization
-        if existing_user.organization_id == organization_id:
+        # Check if user is already a member
+        result = await db.execute(
+            select(OrganizationMember).where(
+                and_(
+                    OrganizationMember.organization_id == str(organization_id),
+                    OrganizationMember.user_id == existing_user.id
+                )
+            )
+        )
+        existing_member = result.scalar_one_or_none()
+        
+        if existing_member:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User is already a member of this organization",
             )
-        existing_user.organization_id = organization_id
-        existing_user.role = invite_data.role
+        
+        # Create new membership
+        member = OrganizationMember(
+            organization_id=str(organization_id),
+            user_id=existing_user.id,
+            role=invite_data.role
+        )
+        db.add(member)
         await db.commit()
-        await db.refresh(existing_user)
-        return existing_user
+        await db.refresh(member)
+        return member
     
     # TODO: Send invitation email with signup link
     # For now, return a message
@@ -196,61 +215,63 @@ async def update_member_role(
     organization_id: UUID,
     user_id: UUID,
     member_data: OrganizationMemberUpdate,
-    current_user: User = Depends(RoleChecker(["admin"])),
+    membership: CurrentMembership = Depends(RoleChecker(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Update a member's role (admin only).
     """
     # Verify user has access to this organization
-    if membership.organization_id != organization_id:
+    if str(membership.organization_id) != str(organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
         )
     
+    # Find the organization member record
+    from app.models.user import OrganizationMember
     result = await db.execute(
-        select(User).where(
+        select(OrganizationMember).where(
             and_(
-                User.id == user_id,
-                User.organization_id == organization_id
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.organization_id == organization_id
             )
         )
     )
-    user = result.scalar_one_or_none()
+    member = result.scalar_one_or_none()
     
-    if not user:
+    if not member:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Member not found in this organization",
         )
     
     # Prevent self-demotion from admin
-    if user.id == membership.user.id and member_data.role != "admin":
+    if member.user_id == membership.user.id and member_data.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot change your own admin role",
         )
     
-    user.role = member_data.role
+    member.role = member_data.role
     await db.commit()
-    await db.refresh(user)
+    await db.refresh(member)
     
-    return user
+    return member
 
 
 @router.delete("/{organization_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
     organization_id: UUID,
     user_id: UUID,
-    current_user: User = Depends(RoleChecker(["admin"])),
+    membership: CurrentMembership = Depends(RoleChecker(["admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Remove a member from the organization (admin only).
     """
     # Verify user has access to this organization
-    if membership.organization_id != organization_id:
+    if str(membership.organization_id) != str(organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this organization",
@@ -263,26 +284,23 @@ async def remove_member(
             detail="Cannot remove yourself from the organization",
         )
     
+    # Find and remove the organization member record
+    from app.models.user import OrganizationMember
     result = await db.execute(
-        select(User).where(
+        select(OrganizationMember).where(
             and_(
-                User.id == user_id,
-                User.organization_id == organization_id
+                OrganizationMember.user_id == user_id,
+                OrganizationMember.organization_id == organization_id
             )
         )
     )
-    user = result.scalar_one_or_none()
+    member = result.scalar_one_or_none()
     
-    if not user:
+    if not member:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Member not found in this organization",
         )
     
-    # Remove organization association
-    user.organization_id = None
-    user.role = "recruiter"  # Reset to default role
-    
+    await db.delete(member)
     await db.commit()
-    
-    return None

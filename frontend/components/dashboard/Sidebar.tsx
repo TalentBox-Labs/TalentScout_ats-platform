@@ -34,14 +34,14 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex w-64 flex-col bg-white border-r border-gray-200 shadow-lg">
+    <div className="flex w-64 flex-col bg-white/95 backdrop-blur-sm border-r border-gray-200/50 shadow-xl">
       {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+      <div className="flex h-16 items-center px-6 border-b border-gray-200/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             TalentScout
           </h1>
         </div>
@@ -74,8 +74,8 @@ export function Sidebar() {
                 flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group
                 ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
+                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600'
                 }
               `}
             >
@@ -90,9 +90,9 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-gray-200 p-4 bg-gradient-to-r from-gray-50 to-blue-50">
+      <div className="border-t border-gray-200/50 p-4 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
             JD
           </div>
           <div className="flex-1 min-w-0">

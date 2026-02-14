@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function Header() {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white/80 backdrop-blur-sm px-8 shadow-sm">
+    <header className="flex h-16 items-center justify-between border-b border-gray-200/50 bg-white/80 backdrop-blur-sm px-8 shadow-sm">
       {/* Search */}
       <div className="flex-1 max-w-2xl">
         <div className="relative">
@@ -18,7 +18,7 @@ export function Header() {
           <Input
             type="search"
             placeholder="Search candidates, jobs, or anything..."
-            className="pl-12 h-11 rounded-xl border-gray-200 bg-gray-50/50 focus:bg-white transition-all duration-200 text-sm placeholder:text-gray-500"
+            className="pl-12 h-11 rounded-xl border-gray-200/50 bg-gray-50/50 focus:bg-white transition-all duration-200 text-sm placeholder:text-gray-500 shadow-sm"
           />
         </div>
       </div>
@@ -29,7 +29,7 @@ export function Header() {
         <Button
           variant="outline"
           size="sm"
-          className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:from-blue-100 hover:to-purple-100 text-blue-700 font-medium rounded-lg px-4"
+          className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200/50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 font-medium rounded-lg px-4 shadow-sm"
         >
           <Sparkles className="h-4 w-4" />
           AI Assistant
@@ -38,7 +38,7 @@ export function Header() {
         <ThemeToggle />
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-gray-100 transition-colors">
+        <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-gray-100/50 transition-colors">
           <Bell className="h-5 w-5 text-gray-600" />
           <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-gradient-to-r from-red-500 to-pink-500 animate-pulse shadow-sm"></span>
         </Button>
@@ -56,7 +56,7 @@ export function Header() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 font-medium rounded-lg px-3"
+            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-medium rounded-lg px-3"
           >
             + Add Candidate
           </Button>
