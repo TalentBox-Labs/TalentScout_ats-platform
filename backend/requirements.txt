@@ -4,20 +4,31 @@ uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 
 # Database
-sqlalchemy==2.0.25
-alembic==1.13.1
-psycopg2-binary==2.9.9
-asyncpg==0.29.0
+sqlalchemy==2.0.25; python_version < "3.13"
+sqlalchemy>=2.0.37,<2.1.0; python_version >= "3.13"
+alembic==1.13.1; python_version < "3.13"
+alembic>=1.14.0,<2.0.0; python_version >= "3.13"
+#psycopg2-binary==2.9.9
+psycopg[binary]==3.1.18; python_version < "3.13"
+psycopg[binary]>=3.2.2,<3.4.0; python_version >= "3.13"
+asyncpg==0.29.0; python_version < "3.13"
+asyncpg>=0.30.0; python_version >= "3.13"
 
 # PostgreSQL Vector Extension
-pgvector==0.2.4
+pgvector==0.2.4; python_version < "3.13"
+pgvector>=0.3.6; python_version >= "3.13"
+numpy<2; python_version < "3.13"
+numpy>=2.1.0,<3.0.0; python_version >= "3.13"
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-dotenv==1.0.0
-pydantic==2.5.3
-pydantic-settings==2.1.0
+pydantic==2.5.3; python_version < "3.13"
+pydantic-settings==2.1.0; python_version < "3.13"
+pydantic>=2.10.0,<3.0.0; python_version >= "3.13"
+pydantic-settings>=2.7.0,<3.0.0; python_version >= "3.13"
 
 # Task Queue
 celery==5.3.6
@@ -25,17 +36,16 @@ redis==5.0.1
 
 # AI/ML Libraries
 openai==1.10.0
-langchain==0.1.6
-langchain-openai==0.0.5
-sentence-transformers==2.3.1
-spacy==3.7.2
-transformers==4.37.2
+# Optional AI/NLP packages (langchain, transformers, sentence-transformers, spacy)
+# are intentionally kept out of core requirements for Python 3.13 Windows stability.
+# Install from requirements-ai.txt only when needed.
 
 # Resume Parsing
 PyPDF2==3.0.1
 pdfplumber==0.10.3
 python-docx==1.1.0
-python-magic==0.4.27
+python-magic==0.4.27; platform_system != "Windows"
+python-magic-bin==0.4.14; platform_system == "Windows"
 
 # Email
 sendgrid==6.11.0

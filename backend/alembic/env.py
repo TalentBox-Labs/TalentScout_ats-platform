@@ -21,8 +21,18 @@ from app.models import (
 # this is the Alembic Config object
 config = context.config
 
-# Set sqlalchemy.url from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+def _get_migration_database_url(url: str) -> str:
+    """
+    Alembic runs with a sync SQLAlchemy engine.
+    Convert async URLs to their sync counterparts for migrations.
+    """
+    if url.startswith("postgresql+asyncpg://"):
+        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    return url
+
+
+# Set sqlalchemy.url from settings (sync driver for Alembic)
+config.set_main_option("sqlalchemy.url", _get_migration_database_url(settings.database_url))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

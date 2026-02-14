@@ -1,5 +1,5 @@
 """User and Organization models."""
-from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, Text, JSON
+from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -88,7 +88,8 @@ class OrganizationMember(Base, TimeStampMixin):
     id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
     organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.RECRUITER)
+    # Stored as string to match existing migration/table definition.
+    role = Column(String(50), nullable=False, default=UserRole.RECRUITER.value)
     is_active = Column(Boolean, default=True)
     permissions = Column(JSON, default=dict)  # Custom permissions
     

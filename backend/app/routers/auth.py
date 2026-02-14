@@ -74,7 +74,7 @@ async def register(
     member = OrganizationMember(
         organization_id=organization.id,
         user_id=user.id,
-        role=UserRole.RECRUITER,
+        role=UserRole.RECRUITER.value,
     )
     db.add(member)
     

@@ -65,7 +65,10 @@ async def get_current_user(
 
     # Expose effective org/role for existing router code paths.
     user.organization_id = membership.organization_id if membership else None  # type: ignore[attr-defined]
-    user.role = membership.role.value if membership else None  # type: ignore[attr-defined]
+    if membership:
+        user.role = getattr(membership.role, "value", membership.role)  # type: ignore[attr-defined]
+    else:
+        user.role = None  # type: ignore[attr-defined]
     
     return user
 
