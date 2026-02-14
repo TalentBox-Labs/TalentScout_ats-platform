@@ -30,7 +30,7 @@ from app.utils.security import (
     create_refresh_token,
     decode_token,
 )
-from app.middleware.auth import get_current_user
+from app.middleware.auth import get_current_membership, CurrentMembership
 from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -234,7 +234,7 @@ async def refresh_token(
 
 @router.post("/logout")
 async def logout(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
 ):
     """
     Logout user (client should discard tokens).
@@ -246,12 +246,12 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
-    current_user: User = Depends(get_current_user),
+    membership: CurrentMembership = Depends(get_current_membership),
 ):
     """
     Get current user information.
     """
-    return current_user
+    return membership.user
 
 
 @router.post("/forgot-password")
