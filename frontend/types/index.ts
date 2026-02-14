@@ -47,6 +47,7 @@ export interface Job {
   openings: number
   skills_required?: string[]
   skills_preferred?: string[]
+  stages?: JobStage[]
   created_at: string
   updated_at: string
 }
@@ -134,6 +135,7 @@ export interface Application {
   applied_at?: string
   created_at: string
   updated_at: string
+  current_stage_obj?: JobStage
   
   // Relations
   job?: Job

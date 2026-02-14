@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Briefcase,
   Users,
+  BrainCircuit,
   ChevronUp,
   UserCircle,
   Settings,
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
   { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
+  { name: 'AI Hiring Plan', href: '/dashboard/pipeline', icon: BrainCircuit },
 ];
 
 export function Sidebar() {
