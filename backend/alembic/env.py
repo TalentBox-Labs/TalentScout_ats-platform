@@ -28,6 +28,8 @@ def _get_migration_database_url(url: str) -> str:
     """
     if url.startswith("postgresql+asyncpg://"):
         return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    elif url.startswith("sqlite+aiosqlite://"):
+        return url.replace("sqlite+aiosqlite://", "sqlite:///", 1)
     return url
 
 

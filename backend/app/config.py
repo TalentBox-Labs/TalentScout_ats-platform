@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     
     # CORS
-    allowed_origins: str = "http://localhost:3000"
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173,https://unsailed-erline-cyclonic.ngrok-free.dev"
     allowed_hosts: str = "*"
     
     # OpenAI

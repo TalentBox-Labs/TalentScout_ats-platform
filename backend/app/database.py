@@ -66,8 +66,9 @@ async def init_db() -> None:
         )
         print(f"Database migrations completed successfully: {result.stdout}")
     except subprocess.CalledProcessError as e:
-        print(f"Error running database migrations: {e.stderr}")
-        raise
+        print(f"Warning: Database migrations failed: {e.stderr}")
+        print("Continuing with application startup...")
+        # Don't raise the exception to allow the app to start
 
 
 async def close_db() -> None:
