@@ -36,7 +36,7 @@ async def register(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Register a new user with email validation.
+    Register a new user with email validation and domain-based organization assignment.
     Creates a new user account and returns user data with access token.
     """
     # Check if user already exists
@@ -49,12 +49,20 @@ async def register(
             detail="User with this email already exists",
         )
     
-    # Create/find organization.
-    org_name = user_data.organization_name or f"{user_data.first_name}'s Organization"
-    result = await db.execute(select(Organization).where(Organization.name == org_name))
+    # Extract domain from email
+    email_domain = user_data.email.split('@')[-1].lower()
+    
+    # Find organization by domain
+    result = await db.execute(select(Organization).where(Organization.domain == email_domain))
     organization = result.scalar_one_or_none()
+    
     if not organization:
-        organization = Organization(name=org_name)
+        # Create new organization for this domain
+        org_name = user_data.organization_name or f"{email_domain.title()} Organization"
+        organization = Organization(
+            name=org_name,
+            domain=email_domain
+        )
         db.add(organization)
         await db.flush()
     
