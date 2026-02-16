@@ -49,6 +49,15 @@ export interface Job {
   skills_preferred?: string[]
   created_at: string
   updated_at: string
+  // Public job features
+  is_public?: boolean
+  public_slug?: string
+  share_count?: number
+  share_metadata?: Record<string, any>
+  og_image_url?: string
+  published_at?: string
+  view_count?: number
+  show_salary_public?: boolean
 }
 
 export interface JobStage {

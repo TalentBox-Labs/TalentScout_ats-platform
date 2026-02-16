@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../../../lib/api'
 import type { Job } from '../../../../types'
 import { formatDate } from '../../../../lib/utils'
+import { JobDashboardShare } from '../../../../components/JobDashboardShare'
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -54,7 +55,7 @@ export default function JobDetailPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
+      <div className="grid gap-4 lg:grid-cols-[2fr,1fr,1fr]">
         <section className="space-y-4 rounded-lg border bg-card p-4">
           <div>
             <h2 className="text-sm font-semibold">Description</h2>
@@ -134,6 +135,10 @@ export default function JobDetailPage() {
               </div>
             </div>
           )}
+        </aside>
+
+        <aside className="space-y-4">
+          <JobDashboardShare job={job} />
         </aside>
       </div>
     </div>

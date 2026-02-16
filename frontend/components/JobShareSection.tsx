@@ -12,11 +12,6 @@ interface JobShareSectionProps {
   jobTitle: string
 }
 
-interface JobShareSectionProps {
-  jobId: string
-  jobTitle: string
-}
-
 export function JobShareSection({ jobId, jobTitle }: JobShareSectionProps) {
   const [shareLinks, setShareLinks] = useState<ShareLinksResponse | null>(null)
   const [loading, setLoading] = useState(true)

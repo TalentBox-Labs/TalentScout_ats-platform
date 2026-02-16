@@ -16,10 +16,12 @@ import {
   MoreHorizontal,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Share2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ShareButton } from '@/components/ShareButton'
 
 export default function JobsPage() {
   const {
@@ -164,6 +166,11 @@ export default function JobsPage() {
                     <span className={`text-xs px-3 py-1 rounded-full font-medium border ${getStatusColor(job.status)}`}>
                       {job.status.replace('_', ' ')}
                     </span>
+                    {job.is_public && (
+                      <span className="text-xs px-2 py-1 rounded-full font-medium border bg-green-100 text-green-700 border-green-200">
+                        Public
+                      </span>
+                    )}
                     <Button variant="ghost" size="sm" className="p-1 h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>
@@ -200,6 +207,16 @@ export default function JobsPage() {
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
+                    {job.is_public && job.public_slug && (
+                      <ShareButton
+                        jobId={job.id}
+                        jobTitle={job.title}
+                        publicUrl={`${window.location.origin}/jobs/${job.public_slug}`}
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -233,9 +250,21 @@ export default function JobsPage() {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  0
+                  {jobs.filter(j => j.is_public).length}
                 </div>
-                <div className="text-xs text-gray-600">Applications</div>
+                <div className="text-xs text-gray-600">Public</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {jobs.reduce((sum, j) => sum + (j.view_count || 0), 0)}
+                </div>
+                <div className="text-xs text-gray-600">Total Views</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {jobs.reduce((sum, j) => sum + (j.share_count || 0), 0)}
+                </div>
+                <div className="text-xs text-gray-600">Total Shares</div>
               </div>
             </div>
           </div>

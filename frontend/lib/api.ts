@@ -346,6 +346,16 @@ class APIClient {
     })
     return response.data
   }
+
+  async publishJobPublic(jobId: string) {
+    const response = await this.client.post(`/api/v1/jobs/${jobId}/publish-public`)
+    return response.data
+  }
+
+  async unpublishJob(jobId: string) {
+    const response = await this.client.post(`/api/v1/jobs/${jobId}/unpublish`)
+    return response.data
+  }
 }
 
 export const apiClient = new APIClient()
