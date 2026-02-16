@@ -1,6 +1,7 @@
 """Database connection and session management."""
 import subprocess
 import sys
+import os
 from typing import AsyncGenerator
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import (
@@ -10,7 +11,17 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
+from contextvars import ContextVar
 from app.config import settings
+
+# Context variable for test sessions
+test_db_session: ContextVar[AsyncSession] = ContextVar('test_db_session', default=None)
+
+# Global for test session
+_test_session = None
+
+# Flag to indicate testing mode
+_testing_mode = os.getenv('TESTING', 'false').lower() == 'true'
 
 # Create async engine
 engine = create_async_engine(
@@ -44,6 +55,27 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     Yields:
         AsyncSession: Database session
     """
+    # In testing mode, always use the test session if available
+    if _testing_mode:
+        if _test_session is not None:
+            yield _test_session
+            return
+        test_session = test_db_session.get()
+        if test_session is not None:
+            yield test_session
+            return
+    
+    # Check if we have a test session from context or global
+    test_session = test_db_session.get()
+    if test_session is not None:
+        yield test_session
+        return
+    
+    # Check global test session
+    if _test_session is not None:
+        yield _test_session
+        return
+    
     async with AsyncSessionLocal() as session:
         try:
             yield session

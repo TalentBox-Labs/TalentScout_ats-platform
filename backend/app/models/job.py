@@ -97,8 +97,8 @@ class Job(Base, TimeStampMixin):
 
     async def generate_slug(self, db):
         """Generate a unique slug from the job title."""
-        from app.utils.slug import generate_unique_slug
-        base_slug = generate_unique_slug(self.title)
+        from app.utils.slug import generate_slug, generate_unique_slug
+        base_slug = generate_slug(self.title)
         self.public_slug = await generate_unique_slug(db, "jobs", "public_slug", base_slug)
 
     def get_public_url(self):

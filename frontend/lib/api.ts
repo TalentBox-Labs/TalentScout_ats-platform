@@ -320,6 +320,32 @@ class APIClient {
     })
     return response.data
   }
+
+  // Public Jobs
+  async getPublicJob(slug: string) {
+    // No auth required for public jobs
+    const response = await axios.get(`${API_URL}/api/v1/jobs/public/${slug}`)
+    return response.data
+  }
+
+  async getShareLinks(jobId: string) {
+    const response = await this.client.get(`/api/v1/jobs/${jobId}/share-links`)
+    return response.data
+  }
+
+  async trackShare(jobId: string, platform: string) {
+    const response = await this.client.post(`/api/v1/jobs/${jobId}/track-share`, {
+      platform
+    })
+    return response.data
+  }
+
+  async updateSalaryVisibility(jobId: string, showSalaryPublic: boolean) {
+    const response = await this.client.patch(`/api/v1/jobs/${jobId}/salary-visibility`, {
+      show_salary_public: showSalaryPublic
+    })
+    return response.data
+  }
 }
 
 export const apiClient = new APIClient()

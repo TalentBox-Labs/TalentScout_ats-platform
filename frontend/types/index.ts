@@ -224,3 +224,42 @@ export interface PaginatedResponse<T> {
   per_page: number
   total_pages: number
 }
+
+// Public Job Types
+export interface PublicJob {
+  id: string
+  title: string
+  description: string
+  requirements?: string
+  responsibilities?: string
+  department?: string
+  location?: string
+  job_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
+  experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'principal'
+  salary_min?: number
+  salary_max?: number
+  salary_currency?: string
+  skills_required: string[]
+  organization_name?: string
+  created_at: string
+  published_at?: string
+  view_count: number
+  share_count: number
+}
+
+export interface ShareLink {
+  platform: string
+  url: string
+  text: string
+}
+
+export interface ShareLinksResponse {
+  job_id: string
+  job_title: string
+  public_url: string
+  share_links: ShareLink[]
+}
+
+export interface TrackShareRequest {
+  platform: 'linkedin' | 'twitter' | 'facebook' | 'email' | 'copy'
+}

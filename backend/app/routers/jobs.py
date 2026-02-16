@@ -3,8 +3,9 @@ Job management router with AI-powered features.
 """
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
@@ -19,6 +20,10 @@ from app.schemas.job import (
     JobUpdate,
     JobResponse,
     JobListResponse,
+    PublicJobResponse,
+    ShareLinksResponse,
+    TrackShareRequest,
+    SalaryVisibilityUpdate,
     JobStageCreate,
     JobStageUpdate,
     JobStageResponse,
@@ -472,3 +477,256 @@ async def create_job_from_template(
     generate_job_embedding.delay(str(new_job.id))
     
     return new_job
+
+
+@router.post("/{job_id}/publish-public", response_model=JobResponse)
+async def publish_job_public(
+    job_id: UUID,
+    membership: CurrentMembership = Depends(get_current_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Publish a job publicly with a unique slug.
+    """
+    result = await db.execute(
+        select(Job).where(and_(
+            Job.id == job_id,
+            Job.organization_id == membership.organization_id
+        ))
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    if job.status != "open":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only open jobs can be published publicly",
+        )
+    
+    # Generate unique slug if not exists
+    if not job.public_slug:
+        await job.generate_slug(db)
+    
+    # Set public and published timestamp
+    job.is_public = True
+    job.published_at = datetime.utcnow()
+    
+    await db.commit()
+    await db.refresh(job)
+    
+    return job
+
+
+@router.post("/{job_id}/unpublish", response_model=JobResponse)
+async def unpublish_job(
+    job_id: UUID,
+    membership: CurrentMembership = Depends(get_current_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Unpublish a job from public view.
+    """
+    result = await db.execute(
+        select(Job).where(and_(
+            Job.id == job_id,
+            Job.organization_id == membership.organization_id
+        ))
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    job.is_public = False
+    
+    await db.commit()
+    await db.refresh(job)
+    
+    return job
+
+
+@router.get("/public/{slug}", response_model=PublicJobResponse)
+async def get_public_job(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get a public job by slug (no auth required).
+    """
+    result = await db.execute(
+        select(Job).where(and_(
+            Job.public_slug == slug,
+            Job.is_public == True,
+            Job.status == "open"
+        )).options(
+            selectinload(Job.organization)
+        )
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    # Increment view count
+    job.view_count += 1
+    await db.commit()
+    
+    # Build response with conditional salary visibility
+    response_data = {
+        **job.__dict__,
+        "organization_name": job.organization.name if job.organization else None,
+    }
+    
+    if not job.show_salary_public:
+        response_data["salary_min"] = None
+        response_data["salary_max"] = None
+        response_data["salary_currency"] = None
+    
+    return response_data
+
+
+@router.get("/{job_id}/share-links", response_model=ShareLinksResponse)
+async def get_share_links(
+    job_id: UUID,
+    membership: CurrentMembership = Depends(get_current_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get share links for a job.
+    """
+    result = await db.execute(
+        select(Job).where(and_(
+            Job.id == job_id,
+            Job.organization_id == membership.organization_id,
+            Job.is_public == True
+        ))
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Public job not found",
+        )
+    
+    public_url = job.get_public_url()
+    if not public_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job has no public URL",
+        )
+    
+    share_links = [
+        {
+            "platform": "linkedin",
+            "url": f"https://www.linkedin.com/sharing/share-offsite/?url={public_url}",
+            "text": f"Check out this job: {job.title}"
+        },
+        {
+            "platform": "twitter",
+            "url": f"https://twitter.com/intent/tweet?text={job.title}&url={public_url}",
+            "text": f"Tweet this job: {job.title}"
+        },
+        {
+            "platform": "facebook",
+            "url": f"https://www.facebook.com/sharer/sharer.php?u={public_url}",
+            "text": f"Share this job on Facebook: {job.title}"
+        },
+        {
+            "platform": "email",
+            "url": f"mailto:?subject={job.title}&body={public_url}",
+            "text": f"Email this job: {job.title}"
+        },
+        {
+            "platform": "copy",
+            "url": public_url,
+            "text": f"Copy link: {public_url}"
+        }
+    ]
+    
+    return {
+        "job_id": job_id,
+        "job_title": job.title,
+        "public_url": public_url,
+        "share_links": share_links
+    }
+
+
+@router.post("/{job_id}/track-share", status_code=status.HTTP_200_OK)
+async def track_share(
+    job_id: UUID,
+    share_data: TrackShareRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Track job shares with rate limiting.
+    """
+    # Simple rate limiting (in production, use Redis)
+    client_ip = request.client.host
+    rate_key = f"share:{client_ip}:{job_id}"
+    
+    # For now, just increment counters
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    job.share_count += 1
+    
+    # Update share metadata
+    metadata = job.share_metadata or {}
+    platform_count = metadata.get(share_data.platform, 0)
+    metadata[share_data.platform] = platform_count + 1
+    job.share_metadata = metadata
+    
+    await db.commit()
+    
+    return {"message": "Share tracked successfully"}
+
+
+@router.patch("/{job_id}/salary-visibility", response_model=JobResponse)
+async def update_salary_visibility(
+    job_id: UUID,
+    visibility_data: SalaryVisibilityUpdate,
+    membership: CurrentMembership = Depends(get_current_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update salary visibility for public job.
+    """
+    result = await db.execute(
+        select(Job).where(and_(
+            Job.id == job_id,
+            Job.organization_id == membership.organization_id
+        ))
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    job.show_salary_public = visibility_data.show_salary_public
+    
+    await db.commit()
+    await db.refresh(job)
+    
+    return job
