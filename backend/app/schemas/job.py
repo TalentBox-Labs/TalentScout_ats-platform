@@ -38,6 +38,7 @@ class JobUpdate(BaseModel):
     salary_currency: Optional[str] = None
     skills_required: Optional[List[str]] = None
     status: Optional[str] = Field(None, pattern="^(draft|open|closed|on_hold|cancelled)$")
+    is_public: Optional[bool] = None
 
 
 class JobStageCreate(BaseModel):
@@ -87,6 +88,28 @@ class JobResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     stages: Optional[List[JobStageResponse]] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class PublicJobResponse(BaseModel):
+    """Schema for public job response (no sensitive data)."""
+    id: UUID
+    title: str
+    description: str
+    requirements: Optional[str] = None
+    responsibilities: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    employment_type: str
+    experience_level: str
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    salary_currency: Optional[str] = None
+    skills_required: List[str]
+    organization_name: Optional[str] = None
+    created_at: datetime
     
     class Config:
         from_attributes = True

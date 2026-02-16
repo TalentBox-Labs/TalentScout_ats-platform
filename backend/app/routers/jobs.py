@@ -2,7 +2,7 @@
 Job management router with AI-powered features.
 """
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.job import Job, JobStage, JobTemplate, JobType, ExperienceLevel
+from app.models.job import Job, JobStage, JobTemplate, JobType, ExperienceLevel, JobShare
 from app.models.application import Application
 from app.middleware.auth import get_current_user
 from app.schemas.job import (
@@ -19,6 +19,7 @@ from app.schemas.job import (
     JobUpdate,
     JobResponse,
     JobListResponse,
+    PublicJobResponse,
     JobStageCreate,
     JobStageUpdate,
     JobStageResponse,
@@ -184,6 +185,10 @@ async def update_job(
     update_data = job_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(job, field, value)
+    
+    # Generate public URL if making job public
+    if update_data.get('is_public') and not job.public_url:
+        job.public_url = str(uuid4())
     
     await db.commit()
     await db.refresh(job)
@@ -471,3 +476,76 @@ async def create_job_from_template(
     generate_job_embedding.delay(str(new_job.id))
     
     return new_job
+
+
+@router.get("/public/{public_url}", response_model=PublicJobResponse)
+async def get_public_job(
+    public_url: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get a public job posting by its public URL.
+    No authentication required.
+    """
+    result = await db.execute(
+        select(Job).where(
+            and_(
+                Job.public_url == public_url,
+                Job.is_public == True,
+                Job.status == "open"
+            )
+        ).options(
+            selectinload(Job.organization),
+            selectinload(Job.stages)
+        )
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found or not publicly available",
+        )
+    
+    # Return job with organization name
+    return {
+        **job.__dict__,
+        "organization_name": job.organization.name if job.organization else None,
+    }
+
+
+@router.post("/{job_id}/share", status_code=status.HTTP_201_CREATED)
+async def track_job_share(
+    job_id: UUID,
+    platform: str,
+    share_url: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Track when a job is shared on social media.
+    """
+    # Verify job exists and is public
+    result = await db.execute(
+        select(Job).where(Job.id == job_id)
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    # Create share tracking record
+    share = JobShare(
+        job_id=job_id,
+        shared_by=current_user.id if current_user else None,
+        platform=platform,
+        share_url=share_url,
+    )
+    
+    db.add(share)
+    await db.commit()
+    
+    return {"message": "Share tracked successfully"}

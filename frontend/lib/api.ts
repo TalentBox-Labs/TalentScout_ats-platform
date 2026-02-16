@@ -91,6 +91,11 @@ class APIClient {
     return response.data
   }
 
+  async oauthLogin(provider: string) {
+    // Redirect to OAuth provider
+    window.location.href = `${API_URL}/api/v1/auth/oauth/${provider}`
+  }
+
   async register(data: {
     email: string
     password: string
@@ -316,6 +321,20 @@ class APIClient {
         company_name: data.company_name,
       },
       tone: data.tone,
+    })
+    return response.data
+  }
+
+  // Public Jobs
+  async getPublicJob(publicUrl: string) {
+    const response = await this.client.get(`/api/v1/jobs/public/${publicUrl}`)
+    return response.data
+  }
+
+  async shareJob(jobId: string, platform: string, shareUrl?: string) {
+    const response = await this.client.post(`/api/v1/jobs/${jobId}/share`, {
+      platform,
+      share_url: shareUrl,
     })
     return response.data
   }

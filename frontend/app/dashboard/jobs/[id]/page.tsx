@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../../../lib/api'
 import type { Job } from '../../../../types'
 import { formatDate } from '../../../../lib/utils'
+import { ShareSection } from '../../../../components/ShareSection'
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -136,6 +137,8 @@ export default function JobDetailPage() {
           )}
         </aside>
       </div>
+
+      <ShareSection job={job} />
     </div>
   )
 }

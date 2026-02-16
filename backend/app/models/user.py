@@ -67,6 +67,7 @@ class User(Base, TimeStampMixin):
     # Relationships
     organizations = relationship("OrganizationMember", back_populates="user", cascade="all, delete-orphan")
     created_jobs = relationship("Job", back_populates="created_by_user", foreign_keys="Job.created_by")
+    job_shares = relationship("JobShare", back_populates="shared_by_user", foreign_keys="JobShare.shared_by")
     comments = relationship("ApplicationNote", back_populates="user")
     interviews = relationship("InterviewParticipant", back_populates="user")
     activities = relationship("ApplicationActivity", back_populates="user")

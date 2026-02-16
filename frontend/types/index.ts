@@ -48,6 +48,8 @@ export interface Job {
   skills_required?: string[]
   skills_preferred?: string[]
   stages?: JobStage[]
+  is_public?: boolean
+  public_url?: string
   created_at: string
   updated_at: string
 }

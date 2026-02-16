@@ -62,35 +62,39 @@ async def init_db() -> None:
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             capture_output=True,
             text=True,
-            check=True
+            check=False  # Don't fail if migrations fail
         )
-        print(f"Database migrations completed successfully: {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Database migrations failed: {e.stderr}")
-        print("Attempting to create tables directly...")
+        if result.returncode == 0:
+            print(f"Database migrations completed successfully: {result.stdout}")
+        else:
+            print(f"Warning: Database migrations failed: {result.stderr}")
+            print("Attempting to create tables directly...")
 
-        # Fallback: Create tables directly using SQLAlchemy
-        try:
-            # Import all models to ensure they are registered with Base
-            from app.models import (
-                user, job, candidate, application, interview, assessment,
-                communication, integration
-            )
-            
-            # Convert async URL to sync URL for table creation
-            sync_url = settings.database_url
-            if sync_url.startswith("sqlite+aiosqlite://"):
-                sync_url = sync_url.replace("sqlite+aiosqlite://", "sqlite:///")
-            elif sync_url.startswith("postgresql+asyncpg://"):
-                sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+            # Fallback: Create tables directly using SQLAlchemy
+            try:
+                # Import all models to ensure they are registered with Base
+                from app.models import (
+                    user, job, candidate, application, interview, assessment,
+                    communication, integration
+                )
+                
+                # Convert async URL to sync URL for table creation
+                sync_url = settings.database_url
+                if sync_url.startswith("sqlite+aiosqlite://"):
+                    sync_url = sync_url.replace("sqlite+aiosqlite://", "sqlite:///")
+                elif sync_url.startswith("postgresql+asyncpg://"):
+                    sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
 
-            from sqlalchemy import create_engine
-            sync_engine = create_engine(sync_url, echo=settings.debug)
-            Base.metadata.create_all(bind=sync_engine)
-            print("Database tables created successfully using SQLAlchemy!")
-        except Exception as create_e:
-            print(f"Failed to create tables directly: {create_e}")
-            print("Continuing with application startup...")
+                from sqlalchemy import create_engine
+                sync_engine = create_engine(sync_url, echo=settings.debug)
+                Base.metadata.create_all(bind=sync_engine, checkfirst=True)
+                print("Database tables created successfully using SQLAlchemy!")
+            except Exception as create_e:
+                print(f"Warning: Failed to create tables directly: {create_e}")
+                print("Continuing with application startup...")
+    except Exception as e:
+        print(f"Warning: Database initialization failed: {e}")
+        print("Continuing with application startup...")
 
 
 async def close_db() -> None:
