@@ -1,5 +1,5 @@
 """Job-related models."""
-from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON, Float
+from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON, Float, DateTime
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -76,6 +76,16 @@ class Job(Base, TimeStampMixin):
     application_deadline = Column(String(255))
     settings = Column(JSON, default=dict)  # Custom settings
     
+    # Public Job Features
+    is_public = Column(Boolean, default=False, index=True)
+    public_slug = Column(String(255), unique=True, index=True)
+    share_count = Column(Integer, default=0)
+    share_metadata = Column(JSON, default=dict)
+    og_image_url = Column(String(500))
+    published_at = Column(DateTime)
+    view_count = Column(Integer, default=0)
+    show_salary_public = Column(Boolean, default=False)
+    
     # Relationships
     organization = relationship("Organization", back_populates="jobs")
     created_by_user = relationship("User", back_populates="created_jobs", foreign_keys=[created_by])
@@ -84,6 +94,19 @@ class Job(Base, TimeStampMixin):
     
     def __repr__(self):
         return f"<Job {self.title}>"
+
+    async def generate_slug(self, db):
+        """Generate a unique slug from the job title."""
+        from app.utils.slug import generate_unique_slug
+        base_slug = generate_unique_slug(self.title)
+        self.public_slug = await generate_unique_slug(db, "jobs", "public_slug", base_slug)
+
+    def get_public_url(self):
+        """Get the full public URL for this job."""
+        from app.config import settings
+        if self.public_slug:
+            return f"{settings.frontend_url}/jobs/{self.public_slug}"
+        return None
 
 
 class JobStage(Base, TimeStampMixin):

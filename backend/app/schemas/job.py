@@ -85,6 +85,14 @@ class JobResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     stages: Optional[List[JobStageResponse]] = None
+    is_public: bool
+    public_slug: Optional[str] = None
+    share_count: int
+    share_metadata: Dict[str, Any]
+    og_image_url: Optional[str] = None
+    published_at: Optional[datetime] = None
+    view_count: int
+    show_salary_public: bool
     
     class Config:
         from_attributes = True
@@ -137,3 +145,53 @@ class JobTemplateResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class PublicJobResponse(BaseModel):
+    """Schema for public job response (no sensitive data)."""
+    id: UUID
+    title: str
+    description: str
+    requirements: Optional[str] = None
+    responsibilities: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    job_type: str
+    experience_level: str
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    salary_currency: Optional[str] = None
+    skills_required: List[str]
+    organization_name: Optional[str] = None
+    created_at: datetime
+    published_at: Optional[datetime] = None
+    view_count: int
+    share_count: int
+    
+    class Config:
+        from_attributes = True
+
+
+class ShareLinkResponse(BaseModel):
+    """Schema for share link response."""
+    platform: str
+    url: str
+    text: str
+
+
+class ShareLinksResponse(BaseModel):
+    """Schema for aggregate share links response."""
+    job_id: UUID
+    job_title: str
+    public_url: str
+    share_links: List[ShareLinkResponse]
+
+
+class TrackShareRequest(BaseModel):
+    """Schema for tracking share requests."""
+    platform: str = Field(..., pattern="^(linkedin|twitter|facebook|email|copy)$")
+
+
+class SalaryVisibilityUpdate(BaseModel):
+    """Schema for updating salary visibility."""
+    show_salary_public: bool
