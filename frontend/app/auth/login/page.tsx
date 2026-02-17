@@ -2,32 +2,18 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FormEvent, Suspense, useState, useEffect } from 'react'
+import { FormEvent, Suspense, useState } from 'react'
 import { apiClient } from '../../../lib/api'
 import { Button } from '@/components/ui/button'
 import { Mail, Chrome, Building2, Linkedin } from 'lucide-react'
 
-function LoginForm() {
+function LoginFormWithParams({ error: oauthError, next }: { error?: string | null, next?: string | null }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  // Check for OAuth errors in URL
-  useEffect(() => {
-    const errorParam = searchParams.get('error')
-    const successParam = searchParams.get('success')
-    
-    if (errorParam === 'oauth_failed') {
-      setError('OAuth authentication failed. Please try again.')
-    } else if (successParam === 'oauth_login') {
-      // Clear any existing errors on successful OAuth redirect
-      setError(null)
-    }
-  }, [searchParams])
+  const [error, setError] = useState<string | null>(oauthError || null)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -35,8 +21,8 @@ function LoginForm() {
     setLoading(true)
     try {
       await apiClient.login(email, password)
-      const next = searchParams.get('next') || '/dashboard'
-      router.push(next)
+      const redirectTo = next || '/dashboard'
+      router.push(redirectTo)
     } catch (err: any) {
       const message =
         err?.response?.data?.detail ||
@@ -182,10 +168,36 @@ function LoginForm() {
   )
 }
 
+function LoginForm() {
+  return (
+    <Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+      <LoginFormWithParams error={null} next={null} />
+    </Suspense>
+  )
+}
+
+function SearchParamsWrapper() {
+  'use client'
+  const searchParams = useSearchParams()
+  const errorParam = searchParams.get('error')
+  const successParam = searchParams.get('success')
+  const nextParam = searchParams.get('next')
+
+  let error = null
+  if (errorParam === 'oauth_failed') {
+    error = 'OAuth authentication failed. Please try again.'
+  } else if (successParam === 'oauth_login') {
+    // Clear any existing errors on successful OAuth redirect
+    error = null
+  }
+
+  return <LoginFormWithParams error={error} next={nextParam} />
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
-      <LoginForm />
+      <SearchParamsWrapper />
     </Suspense>
   )
 }

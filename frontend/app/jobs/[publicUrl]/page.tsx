@@ -105,7 +105,7 @@ export default function PublicJobPage() {
                     <div>
                       <div className="text-sm font-medium text-gray-500 mb-2">Required Skills</div>
                       <div className="flex flex-wrap gap-2">
-                        {job.skills_required.map((skill) => (
+                        {job.skills_required.map((skill: string) => (
                           <span
                             key={skill}
                             className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800"

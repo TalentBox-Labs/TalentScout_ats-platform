@@ -1,4 +1,6 @@
 """Email service for sending emails via SendGrid/Resend."""
+from typing import Optional
+
 
 class EmailService:
     """Service for handling email communications."""
@@ -26,7 +28,7 @@ class EmailService:
         to_email: str,
         subject: str,
         body: str,
-        communication_id: str | None = None,
+        communication_id: Optional[str] = None,
     ) -> dict:
         """Compatibility wrapper used by routers."""
         _ = communication_id
