@@ -1,15 +1,29 @@
 'use client'
 
-import { Suspense } from 'react'
-import ResetPasswordForm from './ResetPasswordForm'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { FormEvent, useState, useEffect } from 'react'
+import { apiClient } from '../../../lib/api'
+import { Button } from '@/components/ui/button'
 
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ResetPasswordForm />
-    </Suspense>
-  )
-}
+export default function ResetPasswordForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [token, setToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    const tokenParam = searchParams.get('token')
+    if (tokenParam) {
+      setToken(tokenParam)
+    } else {
+      setError('Invalid reset link. Please request a new password reset.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -41,7 +55,7 @@ export default function ResetPasswordPage() {
     } catch (err: any) {
       const message =
         err?.response?.data?.detail ||
-        'An error occurred. Please try again or request a new reset link.'
+        'Unable to reset password. Please try again.'
       setError(message)
     } finally {
       setLoading(false)

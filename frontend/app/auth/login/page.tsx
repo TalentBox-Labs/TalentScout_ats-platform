@@ -1,40 +1,15 @@
 'use client'
 
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { FormEvent, useState } from 'react'
-import { apiClient } from '../../../lib/api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { Suspense } from 'react'
+import LoginForm from './LoginForm'
 
 export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-    try {
-      await apiClient.login(email, password)
-      const next = searchParams.get('next') || '/dashboard'
-      router.push(next)
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ||
-        'Unable to sign in. Please check your credentials and try again.'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
+  )
+}
 
   return (
     <div className="space-y-6">
