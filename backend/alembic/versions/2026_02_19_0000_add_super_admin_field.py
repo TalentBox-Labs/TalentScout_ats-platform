@@ -18,7 +18,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Add is_super_admin column to users table
-    op.add_column('users', sa.Column('is_super_admin', sa.Boolean(), nullable=False, default=False, index=True))
+    op.add_column('users', sa.Column('is_super_admin', sa.Boolean(), nullable=False, server_default=sa.text('false'), index=True))
 
 
 def downgrade() -> None:

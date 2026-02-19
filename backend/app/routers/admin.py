@@ -12,7 +12,7 @@ from app.models.job import Job
 from app.models.candidate import Candidate
 from app.models.application import Application
 from app.middleware.auth import get_super_admin_user
-from app.schemas.user import UserResponse
+from app.schemas.user import UserResponse, AdminUserUpdate
 from app.schemas.organization import OrganizationResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -47,10 +47,9 @@ async def get_all_organizations(
 @router.patch("/users/{user_id}")
 async def update_user_admin_fields(
     user_id: str,
-    is_active: bool = None,
-    is_super_admin: bool = None,
+    body: AdminUserUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_super_admin_user),
+    current_user: User = Depends(get_super_admin_user),
 ) -> Dict[str, Any]:
     """
     Update user's active status and super admin status (super admin only).
@@ -65,23 +64,23 @@ async def update_user_admin_fields(
         )
 
     # Prevent super admin from deactivating themselves
-    if user_id == _.id and is_active is False:
+    if user_id == current_user.id and body.is_active is False:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot deactivate your own account",
         )
 
     # Prevent super admin from removing their own super admin status
-    if user_id == _.id and is_super_admin is False:
+    if user_id == current_user.id and body.is_super_admin is False:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot remove your own super admin status",
         )
 
-    if is_active is not None:
-        user.is_active = is_active
-    if is_super_admin is not None:
-        user.is_super_admin = is_super_admin
+    if body.is_active is not None:
+        user.is_active = body.is_active
+    if body.is_super_admin is not None:
+        user.is_super_admin = body.is_super_admin
 
     await db.commit()
     await db.refresh(user)
