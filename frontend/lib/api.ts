@@ -71,6 +71,11 @@ class APIClient {
     }
   }
 
+  // Public method to set auth token
+  setAuthToken(token: string): void {
+    this.setToken(token)
+  }
+
   // Auth methods
   async login(email: string, password: string) {
     const params = new URLSearchParams()
