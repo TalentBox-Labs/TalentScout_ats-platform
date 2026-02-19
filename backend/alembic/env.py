@@ -21,8 +21,9 @@ from app.models import (
 # this is the Alembic Config object
 config = context.config
 
-# Set sqlalchemy.url from settings
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set sqlalchemy.url from settings (convert async URL to sync for migrations)
+sync_database_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+config.set_main_option("sqlalchemy.url", sync_database_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
