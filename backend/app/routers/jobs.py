@@ -375,6 +375,34 @@ async def delete_job_stage(
     return None
 
 
+@router.get("/{job_id}/stages", response_model=List[JobStageResponse])
+async def get_job_stages(
+    job_id: UUID,
+    membership: CurrentMembership = Depends(get_current_membership),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get all pipeline stages for a job, ordered by stage order.
+    """
+    result = await db.execute(
+        select(Job)
+        .options(selectinload(Job.stages))
+        .where(and_(
+            Job.id == job_id,
+            Job.organization_id == membership.organization_id
+        ))
+    )
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+    
+    return job.stages
+
+
 # Job Templates endpoints
 @router.get("/templates/list", response_model=List[JobTemplateResponse])
 async def list_job_templates(
