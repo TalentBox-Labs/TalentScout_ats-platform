@@ -12,7 +12,9 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 from contextvars import ContextVar
-from app.config import settings
+from app.models.user import User
+from app.utils.security import get_password_hash
+from sqlalchemy import select
 
 # Context variable for test sessions
 test_db_session: ContextVar[AsyncSession] = ContextVar('test_db_session', default=None)
@@ -87,14 +89,51 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+async def seed_super_admin() -> None:
+    """Seed the super admin user if it doesn't exist."""
+    try:
+        async with AsyncSessionLocal() as session:
+            # Check if super admin already exists
+            result = await session.execute(
+                select(User).where(User.email == "thomas@workcrew.ai")
+            )
+            existing_admin = result.scalar_one_or_none()
+            
+            if existing_admin:
+                print("Super admin user already exists")
+                return
+            
+            # Create super admin user
+            super_admin = User(
+                email="thomas@workcrew.ai",
+                hashed_password=get_password_hash("admin123"),  # Default password
+                first_name="Thomas",
+                last_name="Admin",
+                is_active=True,
+                is_verified=True,
+                is_super_admin=True,
+            )
+            
+            session.add(super_admin)
+            await session.commit()
+            print("✅ Super admin user seeded: thomas@workcrew.ai")
+            
+    except Exception as e:
+        print(f"Error seeding super admin: {e}")
+
+
 async def init_db() -> None:
-    """Initialize database connection."""
+    """Initialize database connection and seed initial data."""
     try:
         # For SQLite, the database file will be created automatically
         # Just test the connection
         async with AsyncSessionLocal() as session:
             await session.execute(sa.text("SELECT 1"))
         print("Database connection established successfully")
+        
+        # Seed super admin user
+        await seed_super_admin()
+        
     except Exception as e:
         print(f"Error initializing database: {e}")
         raise

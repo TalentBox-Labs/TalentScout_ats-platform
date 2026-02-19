@@ -1,4 +1,4 @@
-// File: H:\OneDrive\Documents\GitHub\TalentScout_ats-platform\frontend\app\layout.tsx
+// File: /Volumes/Macintosh HD - Data/TalentScout - ATS/TalentScout_ats-platform/TalentScout_ats-platform/frontend/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

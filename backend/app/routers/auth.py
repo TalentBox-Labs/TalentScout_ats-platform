@@ -4,11 +4,13 @@ Authentication router for user registration, login, and password management.
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
+import httpx
+import secrets
 from app.database import get_db
 from app.models.user import User, Organization, OrganizationMember, UserRole
 from app.schemas.auth import (
@@ -327,3 +329,139 @@ async def reset_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired token",
         )
+
+
+# OAuth2 endpoints
+@router.get("/oauth/{provider}")
+async def oauth_login(provider: str):
+    """Redirect to OAuth provider for authentication."""
+    state = secrets.token_urlsafe(32)
+    
+    if provider == "google":
+        client_id = settings.google_client_id
+        auth_url = "https://accounts.google.com/o/oauth2/auth"
+        scope = "openid email profile"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/google/callback"
+    elif provider == "microsoft":
+        client_id = settings.microsoft_client_id
+        auth_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        scope = "openid email profile"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/microsoft/callback"
+    elif provider == "linkedin":
+        client_id = settings.linkedin_client_id
+        auth_url = "https://www.linkedin.com/oauth/v2/authorization"
+        scope = "r_liteprofile r_emailaddress"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/linkedin/callback"
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "scope": scope,
+        "response_type": "code",
+        "state": state,
+    }
+    
+    auth_url_with_params = f"{auth_url}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
+    return RedirectResponse(url=auth_url_with_params)
+
+
+@router.get("/oauth/{provider}/callback")
+async def oauth_callback(provider: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Handle OAuth callback and create/login user."""
+    code = request.query_params.get("code")
+    state = request.query_params.get("state")
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Authorization code missing")
+
+    if provider == "google":
+        client_id = settings.google_client_id
+        client_secret = settings.google_client_secret
+        token_url = "https://oauth2.googleapis.com/token"
+        user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/google/callback"
+    elif provider == "microsoft":
+        client_id = settings.microsoft_client_id
+        client_secret = settings.microsoft_client_secret
+        token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        user_info_url = "https://graph.microsoft.com/v1.0/me"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/microsoft/callback"
+    elif provider == "linkedin":
+        client_id = settings.linkedin_client_id
+        client_secret = settings.linkedin_client_secret
+        token_url = "https://www.linkedin.com/oauth/v2/accessToken"
+        user_info_url = "https://api.linkedin.com/v2/people/~:(id,firstName,lastName,emailAddress)"
+        redirect_uri = f"{settings.frontend_url}/auth/oauth/linkedin/callback"
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    # Exchange code for token
+    async with httpx.AsyncClient() as http_client:
+        token_data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": redirect_uri,
+        }
+        response = await http_client.post(token_url, data=token_data)
+        token = response.json()
+        
+        if "access_token" not in token:
+            raise HTTPException(status_code=400, detail="Failed to get access token")
+
+        # Get user info
+        headers = {"Authorization": f"Bearer {token['access_token']}"}
+        user_response = await http_client.get(user_info_url, headers=headers)
+        user_info = user_response.json()
+
+    # Extract user data
+    if provider == "google":
+        oauth_id = user_info["id"]
+        email = user_info["email"]
+        first_name = user_info.get("given_name", "")
+        last_name = user_info.get("family_name", "")
+    elif provider == "microsoft":
+        oauth_id = user_info["id"]
+        email = user_info["mail"] if "mail" in user_info else user_info.get("userPrincipalName", "")
+        first_name = user_info.get("givenName", "")
+        last_name = user_info.get("surname", "")
+    elif provider == "linkedin":
+        oauth_id = user_info["id"]
+        email = user_info["emailAddress"]
+        first_name = user_info["firstName"]["localized"]["en_US"] if user_info.get("firstName") else ""
+        last_name = user_info["lastName"]["localized"]["en_US"] if user_info.get("lastName") else ""
+
+    # Check if user exists
+    id_field = f"{provider}_id"
+    result = await db.execute(select(User).where(getattr(User, id_field) == oauth_id))
+    user = result.scalar_one_or_none()
+
+    if user:
+        # User exists, log them in
+        access_token = create_access_token(data={"sub": user.email})
+        refresh_token = create_refresh_token(data={"sub": user.email})
+        redirect_url = f"{settings.frontend_url}/auth/oauth/{provider}/callback?access_token={access_token}&refresh_token={refresh_token}&user_id={user.id}&email={user.email}&first_name={user.first_name}&last_name={user.last_name}"
+        return RedirectResponse(url=redirect_url)
+    else:
+        # Create new user
+        new_user = User(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=True,
+            is_verified=True,  # OAuth users are pre-verified
+            **{id_field: oauth_id}
+        )
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+
+        # Create access tokens
+        access_token = create_access_token(data={"sub": new_user.email})
+        refresh_token = create_refresh_token(data={"sub": new_user.email})
+        
+        redirect_url = f"{settings.frontend_url}/auth/oauth/{provider}/callback?access_token={access_token}&refresh_token={refresh_token}&user_id={new_user.id}&email={new_user.email}&first_name={new_user.first_name}&last_name={new_user.last_name}"
+        return RedirectResponse(url=redirect_url)

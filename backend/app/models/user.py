@@ -56,6 +56,7 @@ class User(Base, TimeStampMixin):
     timezone = Column(String(50), default="UTC")
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    is_super_admin = Column(Boolean, default=False)
     last_login = Column(String(255))
     
     # OAuth fields

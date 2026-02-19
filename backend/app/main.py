@@ -66,6 +66,7 @@ async def root():
 
 # Import and include routers
 from app.routers import (
+    admin,
     auth,
     organizations,
     jobs,
@@ -81,6 +82,7 @@ from app.routers import (
     integrations,
 )
 
+app.include_router(admin.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(organizations.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}")

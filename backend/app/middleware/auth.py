@@ -86,16 +86,17 @@ async def get_current_user(
     return membership.user
 
 
-async def get_current_active_user(
+async def get_super_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Get current active user.
+    Get current user and verify they are a super admin.
+    Raises 403 if user is not a super admin.
     """
-    if not current_user.is_active:
+    if not current_user.is_super_admin:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Super admin access required",
         )
     return current_user
 
