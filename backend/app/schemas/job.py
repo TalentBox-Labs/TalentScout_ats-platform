@@ -57,9 +57,9 @@ class JobStageResponse(BaseModel):
     id: UUID
     job_id: UUID
     name: str
-    description: Optional[str] = None
     order: int
     color: str
+    description: Optional[str] = None
     is_system: bool
     created_at: datetime
     
