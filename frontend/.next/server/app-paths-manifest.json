@@ -1,17 +1,3 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/jobs/[publicUrl]/page": "app/jobs/[publicUrl]/page.js",
-  "/page": "app/page.js",
-  "/auth/forgot-password/page": "app/auth/forgot-password/page.js",
-  "/auth/register/page": "app/auth/register/page.js",
-  "/auth/oauth/linkedin/callback/page": "app/auth/oauth/linkedin/callback/page.js",
-  "/auth/oauth/microsoft/callback/page": "app/auth/oauth/microsoft/callback/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/dashboard/jobs/[id]/page": "app/dashboard/jobs/[id]/page.js",
-  "/dashboard/jobs/page": "app/dashboard/jobs/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
-  "/dashboard/candidates/page": "app/dashboard/candidates/page.js",
-  "/dashboard/candidates/[id]/page": "app/dashboard/candidates/[id]/page.js",
-  "/auth/oauth/google/callback/page": "app/auth/oauth/google/callback/page.js",
-  "/auth/reset-password/page": "app/auth/reset-password/page.js"
+  "/_not-found/page": "app/_not-found/page.js"
 }
