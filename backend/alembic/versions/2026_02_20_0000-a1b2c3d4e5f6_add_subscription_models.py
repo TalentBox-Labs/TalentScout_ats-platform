@@ -44,7 +44,8 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['org_id'], ['organizations.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id')
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('org_id')
     )
     op.create_index('ix_subscriptions_org_id', 'subscriptions', ['org_id'], unique=False)
     op.create_index('ix_subscriptions_gateway_subscription_id', 'subscriptions', ['gateway_subscription_id'], unique=False)
@@ -72,10 +73,12 @@ def upgrade() -> None:
 
     # Add subscription_id column to organizations
     op.add_column('organizations', sa.Column('subscription_id', sa.String(), sa.ForeignKey('subscriptions.id', ondelete='SET NULL'), nullable=True))
+    op.create_unique_constraint('uq_organizations_subscription_id', 'organizations', ['subscription_id'])
 
 
 def downgrade() -> None:
     # Drop subscription_id column from organizations
+    op.drop_constraint('uq_organizations_subscription_id', 'organizations', type_='unique')
     op.drop_column('organizations', 'subscription_id')
 
     # Drop payment_transactions table and indexes

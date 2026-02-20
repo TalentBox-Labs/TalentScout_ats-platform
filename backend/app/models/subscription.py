@@ -42,7 +42,7 @@ class Subscription(Base, TimeStampMixin):
     __tablename__ = "subscriptions"
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    org_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    org_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     plan = Column(SQLEnum(SubscriptionPlan), nullable=False, default=SubscriptionPlan.FREE)
     status = Column(SQLEnum(SubscriptionStatus), nullable=False, default=SubscriptionStatus.TRIALING)
     payment_gateway = Column(SQLEnum(PaymentGateway), nullable=True)
@@ -54,7 +54,7 @@ class Subscription(Base, TimeStampMixin):
     cancelled_at = Column(DateTime, nullable=True)
 
     # Relationships
-    organization = relationship("Organization", back_populates="subscription")
+    organization = relationship("Organization", back_populates="subscription", uselist=False)
     transactions = relationship("PaymentTransaction", back_populates="subscription")
 
     def __repr__(self):

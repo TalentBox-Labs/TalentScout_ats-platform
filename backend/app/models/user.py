@@ -29,7 +29,7 @@ class Organization(Base, TimeStampMixin):
     size = Column(String(50))  # e.g., "1-10", "11-50", "51-200"
     settings = Column(JSON, default=dict)  # Organization-wide settings
     is_active = Column(Boolean, default=True)
-    subscription_id = Column(String, ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True)
+    subscription_id = Column(String, ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True, unique=True)
     
     # Relationships
     members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
