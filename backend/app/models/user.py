@@ -35,7 +35,7 @@ class Organization(Base, TimeStampMixin):
     members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="organization", cascade="all, delete-orphan")
     candidates = relationship("Candidate", back_populates="organization", cascade="all, delete-orphan")
-    subscription = relationship("Subscription", foreign_keys=[subscription_id])
+    subscription = relationship("Subscription", back_populates="organization", foreign_keys=[subscription_id])
     payment_transactions = relationship("PaymentTransaction", back_populates="organization")
     
     def __repr__(self):

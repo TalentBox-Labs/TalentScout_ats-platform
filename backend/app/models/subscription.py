@@ -54,7 +54,7 @@ class Subscription(Base, TimeStampMixin):
     cancelled_at = Column(DateTime, nullable=True)
 
     # Relationships
-    organization = relationship("Organization")
+    organization = relationship("Organization", back_populates="subscription")
     transactions = relationship("PaymentTransaction", back_populates="subscription")
 
     def __repr__(self):
