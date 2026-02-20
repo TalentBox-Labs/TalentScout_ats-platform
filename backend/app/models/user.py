@@ -29,11 +29,14 @@ class Organization(Base, TimeStampMixin):
     size = Column(String(50))  # e.g., "1-10", "11-50", "51-200"
     settings = Column(JSON, default=dict)  # Organization-wide settings
     is_active = Column(Boolean, default=True)
+    subscription_id = Column(String, ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
     members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="organization", cascade="all, delete-orphan")
     candidates = relationship("Candidate", back_populates="organization", cascade="all, delete-orphan")
+    subscription = relationship("Subscription", back_populates="organization", foreign_keys=[subscription_id])
+    payment_transactions = relationship("PaymentTransaction", back_populates="organization")
     
     def __repr__(self):
         return f"<Organization {self.name}>"

@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUser } from '@/lib/user-context';
 import {
   LayoutDashboard,
   Briefcase,
@@ -16,6 +17,7 @@ import {
   Settings,
   FileText,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 
 const navigation = [
@@ -30,8 +32,15 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, implemented: false }, // TODO: Implement settings page
 ];
 
+const adminNavigation = [
+  { name: 'Admin Dashboard', href: '/dashboard/admin', icon: Shield, implemented: true },
+  { name: 'User Management', href: '/dashboard/admin/users', icon: Users, implemented: true },
+  { name: 'Organizations', href: '/dashboard/admin/organizations', icon: Settings, implemented: true },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
 
   return (
     <div className="flex w-64 flex-col bg-white/95 backdrop-blur-sm border-r border-gray-200/50 shadow-xl">
@@ -49,6 +58,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-2 px-4 py-6">
+        {/* Regular Navigation */}
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
           const Icon = item.icon;
@@ -87,17 +97,56 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin Navigation - Only show for super admins */}
+        {user?.is_super_admin && (
+          <>
+            <div className="border-t border-gray-200/50 my-4"></div>
+            <div className="px-4 py-2">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</h3>
+            </div>
+            {adminNavigation.map((item) => {
+              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group
+                    ${
+                      isActive
+                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600'
+                    }
+                  `}
+                >
+                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'text-white' : 'group-hover:scale-110'}`} />
+                  <span className="font-semibold">{item.name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* User section */}
       <div className="border-t border-gray-200/50 p-4 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
-            JD
+            {user ? `${user.first_name?.[0]}${user.last_name?.[0]}`.toUpperCase() : 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">John Doe</p>
-            <p className="text-xs text-gray-600 truncate">Administrator</p>
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
+            </p>
+            <p className="text-xs text-gray-600 truncate">
+              {user?.is_super_admin ? 'Super Admin' : 'Administrator'}
+            </p>
           </div>
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Online"></div>
         </div>

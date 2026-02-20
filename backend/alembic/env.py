@@ -15,7 +15,7 @@ from app.config import settings
 # Import all models to ensure they're registered with Base
 from app.models import (
     user, job, candidate, application, interview, 
-    assessment, communication, integration
+    assessment, communication, integration, subscription
 )
 
 # this is the Alembic Config object

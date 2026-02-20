@@ -24,6 +24,10 @@ from app.models.assessment import (
 )
 from app.models.communication import EmailTemplate, Communication, EmailSequence
 from app.models.integration import Integration, IntegrationConfig, IntegrationLog
+from app.models.subscription import (
+    SubscriptionPlan, SubscriptionStatus, PaymentGateway, TransactionStatus,
+    Subscription, PaymentTransaction,
+)
 
 __all__ = [
     "TimeStampMixin",
@@ -55,4 +59,10 @@ __all__ = [
     "Integration",
     "IntegrationConfig",
     "IntegrationLog",
+    "SubscriptionPlan",
+    "SubscriptionStatus",
+    "PaymentGateway",
+    "TransactionStatus",
+    "Subscription",
+    "PaymentTransaction",
 ]

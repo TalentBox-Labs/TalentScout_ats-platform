@@ -361,6 +361,27 @@ class APIClient {
     const response = await this.client.post(`/api/v1/jobs/${jobId}/unpublish`)
     return response.data
   }
+
+  // Admin methods
+  async getAllUsers() {
+    const response = await this.client.get('/api/v1/admin/users')
+    return response.data
+  }
+
+  async getAllOrganizations() {
+    const response = await this.client.get('/api/v1/admin/organizations')
+    return response.data
+  }
+
+  async getPlatformStats() {
+    const response = await this.client.get('/api/v1/admin/stats')
+    return response.data
+  }
+
+  async updateUserAdminFields(userId: string, data: { is_active?: boolean; is_super_admin?: boolean }) {
+    const response = await this.client.patch(`/api/v1/admin/users/${userId}`, data)
+    return response.data
+  }
 }
 
 export const apiClient = new APIClient()
