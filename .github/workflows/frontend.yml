@@ -51,26 +51,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
       with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: ./frontend/package-lock.json
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
 
-    - name: Build application
-      run: npm run build
-      env:
-        NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-        NEXT_PUBLIC_ENVIRONMENT: production
+    - name: Configure Docker for Artifact Registry
+      run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-    - name: Deploy to Vercel
-      uses: vercel/deploy-action@v1
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: ./frontend
+    - name: Trigger Cloud Build
+      run: |
+        gcloud builds submit --config cloudbuild.yaml --substitutions _NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }},_CLOUD_SQL_INSTANCE=${{ secrets.CLOUD_SQL_INSTANCE }} .

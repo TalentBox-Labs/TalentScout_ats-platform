@@ -1,0 +1,153 @@
+steps:
+  # Build backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - '-f'
+      - './backend/Dockerfile'
+      - './backend'
+
+  # Build frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
+      - '-f'
+      - './frontend/Dockerfile'
+      - './frontend'
+
+  # Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+
+  # Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'talentscout-backend'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--set-secrets'
+      - 'SECRET_KEY=SECRET_KEY:latest'
+      - '--set-secrets'
+      - 'OPENAI_API_KEY=OPENAI_API_KEY:latest'
+      - '--set-secrets'
+      - 'DATABASE_URL=DATABASE_URL:latest'
+      - '--set-secrets'
+      - 'REDIS_URL=REDIS_URL:latest'
+      - '--set-secrets'
+      - 'SENDGRID_API_KEY=SENDGRID_API_KEY:latest'
+      - '--set-secrets'
+      - 'ALLOWED_ORIGINS=ALLOWED_ORIGINS:latest'
+      - '--add-cloudsql-instances'
+      - '${_CLOUD_SQL_INSTANCE}'
+      - '--min-instances'
+      - '1'
+      - '--allow-unauthenticated'
+
+  # Deploy Celery worker to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'talentscout-celery'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--set-secrets'
+      - 'SECRET_KEY=SECRET_KEY:latest'
+      - '--set-secrets'
+      - 'OPENAI_API_KEY=OPENAI_API_KEY:latest'
+      - '--set-secrets'
+      - 'DATABASE_URL=DATABASE_URL:latest'
+      - '--set-secrets'
+      - 'REDIS_URL=REDIS_URL:latest'
+      - '--set-secrets'
+      - 'CELERY_BROKER_URL=CELERY_BROKER_URL:latest'
+      - '--set-secrets'
+      - 'CELERY_RESULT_BACKEND=CELERY_RESULT_BACKEND:latest'
+      - '--set-secrets'
+      - 'SENDGRID_API_KEY=SENDGRID_API_KEY:latest'
+      - '--command'
+      - 'celery'
+      - '--args'
+      - '-A'
+      - 'app.workers.ai_screening'
+      - 'worker'
+      - '--loglevel=info'
+      - '--add-cloudsql-instances'
+      - '${_CLOUD_SQL_INSTANCE}'
+      - '--min-instances'
+      - '1'
+      - '--no-allow-unauthenticated'
+
+  # Run Alembic migrations as a Cloud Run Job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - 'migrate-db'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--set-secrets'
+      - 'DATABASE_URL=DATABASE_URL:latest'
+      - '--add-cloudsql-instances'
+      - '${_CLOUD_SQL_INSTANCE}'
+      - '--command'
+      - 'alembic'
+      - '--args'
+      - 'upgrade'
+      - 'head'
+      - '--execute'
+      - '--wait'
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'talentscout-frontend'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
+      - '--allow-unauthenticated'
+
+substitutions:
+  _NEXT_PUBLIC_API_URL: 'https://talentscout-backend-abc123.us-central1.run.app'  # Replace with actual backend URL
+  _CLOUD_SQL_INSTANCE: 'your-project:us-central1:your-instance'  # Replace with actual Cloud SQL instance
+
+options:
+  logging: CLOUD_LOGGING_ONLY
