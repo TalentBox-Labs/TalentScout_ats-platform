@@ -1,0 +1,5 @@
+{
+  "headers": {
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/auth/layout,_N_T_/auth/oauth/layout,_N_T_/auth/oauth/microsoft/layout,_N_T_/auth/oauth/microsoft/callback/layout,_N_T_/auth/oauth/microsoft/callback/page,_N_T_/auth/oauth/microsoft/callback"
+  }
+}

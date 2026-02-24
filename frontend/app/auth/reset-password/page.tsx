@@ -1,5 +1,6 @@
 'use client'
 
+<<<<<<< HEAD
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, Suspense, useState, useEffect } from 'react'
 import { apiClient } from '../../../lib/api'
@@ -165,6 +166,14 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<div className="text-sm text-muted-foreground">Loading...</div>}>
+=======
+import { Suspense } from 'react'
+import ResetPasswordForm from './ResetPasswordForm'
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+>>>>>>> origin/main
       <ResetPasswordForm />
     </Suspense>
   )

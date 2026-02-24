@@ -4,7 +4,7 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:${BUILD_ID}'
       - '-f'
       - './backend/Dockerfile'
       - './backend'
@@ -14,7 +14,7 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:${BUILD_ID}'
       - '--build-arg'
       - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
       - '-f'
@@ -25,13 +25,13 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:${BUILD_ID}'
 
   # Push frontend image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:${BUILD_ID}'
 
   # Deploy backend to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -41,7 +41,7 @@ steps:
       - 'deploy'
       - 'talentscout-backend'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:${BUILD_ID}'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -72,7 +72,7 @@ steps:
       - 'deploy'
       - 'talentscout-celery'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:${BUILD_ID}'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -113,7 +113,7 @@ steps:
       - 'deploy'
       - 'migrate-db'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-backend:${BUILD_ID}'
       - '--region'
       - 'us-central1'
       - '--set-secrets'
@@ -136,7 +136,7 @@ steps:
       - 'deploy'
       - 'talentscout-frontend'
       - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:$COMMIT_SHA'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/talentscout/talentscout-frontend:${BUILD_ID}'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -147,7 +147,7 @@ steps:
 
 substitutions:
   _NEXT_PUBLIC_API_URL: 'https://talentscout-backend-abc123.us-central1.run.app'  # Replace with actual backend URL
-  _CLOUD_SQL_INSTANCE: 'your-project:us-central1:your-instance'  # Replace with actual Cloud SQL instance
+  _CLOUD_SQL_INSTANCE: 'talentscout-488015:us-central1:free-trial-first-project'  # Cloud SQL instance
 
 options:
   logging: CLOUD_LOGGING_ONLY
