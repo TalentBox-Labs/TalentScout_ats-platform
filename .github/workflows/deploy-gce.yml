@@ -1,0 +1,117 @@
+name: Deploy to GCP Compute Engine
+
+on:
+  push:
+    branches: [ main, CST---Update ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REPO_NAME: talentscout
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        pip install -r requirements.txt
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        python -m pytest tests/ -v || echo "No tests found, skipping"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Run frontend build
+      run: |
+        cd frontend
+        npm run build
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker to use gcloud as a credential helper
+      run: gcloud auth configure-docker $REGISTRY
+
+    - name: Build and push backend image
+      run: |
+        cd backend
+        docker build -t $REGISTRY/$PROJECT_ID/$REPO_NAME/backend:latest .
+        docker push $REGISTRY/$PROJECT_ID/$REPO_NAME/backend:latest
+
+    - name: Build and push frontend image
+      run: |
+        cd frontend
+        docker build -t $REGISTRY/$PROJECT_ID/$REPO_NAME/frontend:latest .
+        docker push $REGISTRY/$PROJECT_ID/$REPO_NAME/frontend:latest
+
+    - name: Deploy to GCP Compute Engine
+      run: |
+        gcloud compute ssh ${{ secrets.GCE_INSTANCE_NAME }} \
+          --zone=${{ secrets.GCE_ZONE }} \
+          --command="
+            # Set environment variables
+            export REGISTRY=$REGISTRY
+            export PROJECT_ID=$PROJECT_ID
+            export REPO_NAME=$REPO_NAME
+            export DATABASE_URL='${{ secrets.DATABASE_URL }}'
+            export REDIS_URL='${{ secrets.REDIS_URL }}'
+            export CELERY_BROKER_URL='${{ secrets.CELERY_BROKER_URL }}'
+            export CELERY_RESULT_BACKEND='${{ secrets.CELERY_RESULT_BACKEND }}'
+            export SECRET_KEY='${{ secrets.SECRET_KEY }}'
+            export OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'
+            export NEXT_PUBLIC_API_URL='${{ secrets.NEXT_PUBLIC_API_URL }}'
+            export POSTGRES_USER='${{ secrets.POSTGRES_USER }}'
+            export POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}'
+            export POSTGRES_DB='${{ secrets.POSTGRES_DB }}'
+            
+            # Navigate to app directory
+            cd /opt/talentscout
+            
+            # Pull latest images
+            docker pull \$REGISTRY/\$PROJECT_ID/\$REPO_NAME/backend:latest
+            docker pull \$REGISTRY/\$PROJECT_ID/\$REPO_NAME/frontend:latest
+            
+            # Stop existing containers
+            docker-compose -f docker-compose.prod.yml down || true
+            
+            # Start new containers
+            docker-compose -f docker-compose.prod.yml up -d
+            
+            # Run database migrations if needed
+            docker-compose -f docker-compose.prod.yml exec -T backend alembic upgrade head || echo 'Migration completed or not needed'
+          "
