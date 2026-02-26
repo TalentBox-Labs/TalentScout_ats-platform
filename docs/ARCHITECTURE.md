@@ -226,7 +226,6 @@ Response back up the chain
 ```
 ┌─────────────────────┐
 │   CDN (Frontend)    │
-│   - Vercel          │
 │   - Cloud Storage   │
 └──────────┬──────────┘
            │
