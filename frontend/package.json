@@ -4,9 +4,9 @@
   "description": "Frontend for ATS Platform",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 5173",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "start": "vite preview",
     "lint": "next lint"
   },
   "dependencies": {

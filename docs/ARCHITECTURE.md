@@ -226,21 +226,34 @@ Response back up the chain
 ```
 ┌─────────────────────┐
 │   CDN (Frontend)    │
-│   - Vercel/Netlify  │
+│   - Vercel          │
+│   - Cloud Storage   │
 └──────────┬──────────┘
            │
 ┌──────────▼──────────┐
-│   API Server        │
-│   - Railway/Render  │
-│   - PM2 Process Mgr │
+│ Cloud Load Balancing│
+│ (HTTP(S) Load       │
+│  Balancer)          │
+│ - Reverse proxy     │
+│ - Traffic           │
+│   distribution      │
+└──────────┬──────────┘
+           │
+┌──────────▼──────────┐
+│   API Servers       │
+│   - Cloud Run       │
+│   - Multiple        │
+│     instances       │
 └──────────┬──────────┘
            │
 ┌──────────▼──────────┐
 │   Database          │
 │   - PostgreSQL      │
-│   - Supabase/Neon   │
+│   - Cloud SQL       │
 └─────────────────────┘
 ```
+
+**Cloud Load Balancing (HTTP(S) Load Balancer)**: Acts as a reverse proxy, distributing traffic to backend VMs or containers.
 
 ## Performance Optimization
 

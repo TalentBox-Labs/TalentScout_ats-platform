@@ -1,6 +1,6 @@
 """Add subscription models
 
-Revision ID: 2026_02_20_0000-a1b2c3d4e5f6
+Revision ID: a1b2c3d4e5f6
 Revises: 2026_02_19_0000_add_super_admin_field
 Create Date: 2026-02-20 00:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2026_02_20_0000-a1b2c3d4e5f6'
+revision = 'a1b2c3d4e5f6'
 down_revision = '2026_02_19_0000_add_super_admin_field'
 branch_labels = None
 depends_on = None

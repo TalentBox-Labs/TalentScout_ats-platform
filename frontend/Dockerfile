@@ -16,25 +16,10 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS runner
+FROM nginx:alpine AS runner
 
-WORKDIR /app
+# Copy the build output to nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy the standalone build output
-COPY --from=builder /app/.next/standalone ./
-
-# Copy the static files
-COPY --from=builder /app/.next/static ./.next/static
-
-# Copy public folder if it exists
-COPY --from=builder /app/public ./public
-
-# Expose port
-EXPOSE 3000
-
-# Set environment variables
-ENV PORT=3000
-ENV NODE_ENV=production
-
-# Start the server
-CMD ["node", "server.js"]
+# Start nginx with dynamic port
+CMD ["sh", "-c", "sed -i 's/80/'$PORT'/g' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

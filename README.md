@@ -1,7 +1,5 @@
 # 🎯 TalentScout ATS Platform
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/303b99e0-6a0c-4ae0-8652-c0f8e422a96b/deploy-status)](https://app.netlify.com/projects/workcrew/deploys)
-
 **An AI-First Applicant Tracking System** built with modern technologies and intelligent automation.
 
 ## ⚡ Quick Links
