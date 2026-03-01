@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 class APIClient {
   private client: AxiosInstance
@@ -8,6 +8,9 @@ class APIClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
 
     // Request interceptor to add auth token
@@ -71,19 +74,14 @@ class APIClient {
     }
   }
 
-  // Public method to set auth token
-  setAuthToken(token: string): void {
-    this.setToken(token)
-  }
-
   // Auth methods
   async login(email: string, password: string) {
-    const params = new URLSearchParams()
-    params.append('username', email)
-    params.append('password', password)
-    const response = await this.client.post('/api/v1/auth/login', params, {
+    const formData = new FormData()
+    formData.append('username', email)
+    formData.append('password', password)
+    const response = await this.client.post('/api/v1/auth/login', formData, {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'multipart/form-data',
       },
     })
     this.setToken(response.data.access_token)
@@ -91,6 +89,11 @@ class APIClient {
       this.setRefreshToken(response.data.refresh_token)
     }
     return response.data
+  }
+
+  async oauthLogin(provider: string) {
+    // Redirect to OAuth provider
+    window.location.href = `${API_URL}/api/v1/auth/oauth/${provider}`
   }
 
   async register(data: {
@@ -106,10 +109,6 @@ class APIClient {
       first_name: data.first_name,
       last_name: data.last_name,
       organization_name: data.organization_name,
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
     })
     this.setToken(response.data.access_token)
     if (response.data.refresh_token) {
@@ -327,59 +326,16 @@ class APIClient {
   }
 
   // Public Jobs
-  async getPublicJob(slug: string) {
-    // No auth required for public jobs
-    const response = await axios.get(`${API_URL}/api/v1/jobs/public/${slug}`)
+  async getPublicJob(publicUrl: string) {
+    const response = await this.client.get(`/api/v1/jobs/public/${publicUrl}`)
     return response.data
   }
 
-  async getShareLinks(jobId: string) {
-    const response = await this.client.get(`/api/v1/jobs/${jobId}/share-links`)
-    return response.data
-  }
-
-  async trackShare(jobId: string, platform: string) {
-    const response = await this.client.post(`/api/v1/jobs/${jobId}/track-share`, {
-      platform
+  async shareJob(jobId: string, platform: string, shareUrl?: string) {
+    const response = await this.client.post(`/api/v1/jobs/${jobId}/share`, {
+      platform,
+      share_url: shareUrl,
     })
-    return response.data
-  }
-
-  async updateSalaryVisibility(jobId: string, showSalaryPublic: boolean) {
-    const response = await this.client.patch(`/api/v1/jobs/${jobId}/salary-visibility`, {
-      show_salary_public: showSalaryPublic
-    })
-    return response.data
-  }
-
-  async publishJobPublic(jobId: string) {
-    const response = await this.client.post(`/api/v1/jobs/${jobId}/publish-public`)
-    return response.data
-  }
-
-  async unpublishJob(jobId: string) {
-    const response = await this.client.post(`/api/v1/jobs/${jobId}/unpublish`)
-    return response.data
-  }
-
-  // Admin methods
-  async getAllUsers() {
-    const response = await this.client.get('/api/v1/admin/users')
-    return response.data
-  }
-
-  async getAllOrganizations() {
-    const response = await this.client.get('/api/v1/admin/organizations')
-    return response.data
-  }
-
-  async getPlatformStats() {
-    const response = await this.client.get('/api/v1/admin/stats')
-    return response.data
-  }
-
-  async updateUserAdminFields(userId: string, data: { is_active?: boolean; is_super_admin?: boolean }) {
-    const response = await this.client.patch(`/api/v1/admin/users/${userId}`, data)
     return response.data
   }
 }

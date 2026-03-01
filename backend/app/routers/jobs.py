@@ -2,28 +2,24 @@
 Job management router with AI-powered features.
 """
 from typing import List, Optional
-from uuid import UUID
-from datetime import datetime
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.user import User
-from app.models.job import Job, JobStage, JobTemplate
+from app.models.job import Job, JobStage, JobTemplate, JobType, ExperienceLevel, JobShare
 from app.models.application import Application
-from app.middleware.auth import get_current_membership, CurrentMembership
+from app.middleware.auth import get_current_user
 from app.schemas.job import (
     JobCreate,
     JobUpdate,
     JobResponse,
     JobListResponse,
     PublicJobResponse,
-    ShareLinksResponse,
-    TrackShareRequest,
-    SalaryVisibilityUpdate,
     JobStageCreate,
     JobStageUpdate,
     JobStageResponse,
@@ -42,13 +38,13 @@ async def list_jobs(
     location: Optional[str] = Query(None, description="Filter by location"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all jobs with filtering and pagination.
     """
-    query = select(Job).where(Job.organization_id == membership.organization_id)
+    query = select(Job).where(Job.organization_id == current_user.organization_id)
     
     # Apply filters
     if status_filter:
@@ -81,7 +77,7 @@ async def list_jobs(
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -94,15 +90,15 @@ async def create_job(
         responsibilities=job_data.responsibilities,
         department=job_data.department,
         location=job_data.location,
-        job_type=job_data.job_type,
+        employment_type=job_data.employment_type,
         experience_level=job_data.experience_level,
         salary_min=job_data.salary_min,
         salary_max=job_data.salary_max,
         salary_currency=job_data.salary_currency,
         skills_required=job_data.skills_required or [],
         status="draft",
-        organization_id=membership.organization_id,
-        created_by=membership.user.id,
+        organization_id=current_user.organization_id,
+        created_by_id=current_user.id,
     )
     
     db.add(new_job)
@@ -114,11 +110,11 @@ async def create_job(
     
     # Create default pipeline stages
     default_stages = [
-        {"name": "Applied", "order": 1},
-        {"name": "Screening", "order": 2},
-        {"name": "Interview", "order": 3},
-        {"name": "Offer", "order": 4},
-        {"name": "Hired", "order": 5},
+        {"name": "Applied", "order": 1, "type": "application"},
+        {"name": "Screening", "order": 2, "type": "screening"},
+        {"name": "Interview", "order": 3, "type": "interview"},
+        {"name": "Offer", "order": 4, "type": "offer"},
+        {"name": "Hired", "order": 5, "type": "hired"},
     ]
     
     for stage_data in default_stages:
@@ -137,7 +133,7 @@ async def create_job(
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job(
     job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -147,7 +143,7 @@ async def get_job(
         select(Job)
         .where(and_(
             Job.id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
         .options(selectinload(Job.stages))
     )
@@ -165,7 +161,7 @@ async def get_job(
 async def update_job(
     job_id: UUID,
     job_data: JobUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -174,7 +170,7 @@ async def update_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -190,6 +186,10 @@ async def update_job(
     for field, value in update_data.items():
         setattr(job, field, value)
     
+    # Generate public URL if making job public
+    if update_data.get('is_public') and not job.public_url:
+        job.public_url = str(uuid4())
+    
     await db.commit()
     await db.refresh(job)
     
@@ -203,7 +203,7 @@ async def update_job(
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(
     job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -212,7 +212,7 @@ async def delete_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -232,7 +232,7 @@ async def delete_job(
 @router.post("/{job_id}/publish", response_model=JobResponse)
 async def publish_job(
     job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -241,7 +241,7 @@ async def publish_job(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -269,7 +269,7 @@ async def publish_job(
 async def create_job_stage(
     job_id: UUID,
     stage_data: JobStageCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -279,7 +279,7 @@ async def create_job_stage(
     result = await db.execute(
         select(Job).where(and_(
             Job.id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     job = result.scalar_one_or_none()
@@ -294,7 +294,6 @@ async def create_job_stage(
         job_id=job_id,
         name=stage_data.name,
         order=stage_data.order,
-        # Note: stage_type not stored in model as per schema alignment
     )
     
     db.add(new_stage)
@@ -309,7 +308,7 @@ async def update_job_stage(
     job_id: UUID,
     stage_id: UUID,
     stage_data: JobStageUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -321,7 +320,7 @@ async def update_job_stage(
         .where(and_(
             JobStage.id == stage_id,
             JobStage.job_id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     stage = result.scalar_one_or_none()
@@ -346,7 +345,7 @@ async def update_job_stage(
 async def delete_job_stage(
     job_id: UUID,
     stage_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -358,7 +357,7 @@ async def delete_job_stage(
         .where(and_(
             JobStage.id == stage_id,
             JobStage.job_id == job_id,
-            Job.organization_id == membership.organization_id
+            Job.organization_id == current_user.organization_id
         ))
     )
     stage = result.scalar_one_or_none()
@@ -375,38 +374,10 @@ async def delete_job_stage(
     return None
 
 
-@router.get("/{job_id}/stages", response_model=List[JobStageResponse])
-async def get_job_stages(
-    job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Get all pipeline stages for a job, ordered by stage order.
-    """
-    result = await db.execute(
-        select(Job)
-        .options(selectinload(Job.stages))
-        .where(and_(
-            Job.id == job_id,
-            Job.organization_id == membership.organization_id
-        ))
-    )
-    job = result.scalar_one_or_none()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-    
-    return job.stages
-
-
 # Job Templates endpoints
 @router.get("/templates/list", response_model=List[JobTemplateResponse])
 async def list_job_templates(
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -415,7 +386,7 @@ async def list_job_templates(
     result = await db.execute(
         select(JobTemplate).where(
             or_(
-                JobTemplate.organization_id == membership.organization_id,
+                JobTemplate.organization_id == current_user.organization_id,
                 JobTemplate.is_public == True
             )
         ).order_by(JobTemplate.created_at.desc())
@@ -428,7 +399,7 @@ async def list_job_templates(
 @router.post("/templates", response_model=JobTemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_template(
     template_data: JobTemplateCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -441,11 +412,11 @@ async def create_job_template(
         requirements=template_data.requirements,
         responsibilities=template_data.responsibilities,
         department=template_data.department,
-        job_type=template_data.job_type,
-        experience_level=template_data.experience_level,
+        job_type=JobType(template_data.employment_type),
+        experience_level=ExperienceLevel(template_data.experience_level),
         skills_required=template_data.skills_required or [],
         is_public=False,
-        organization_id=membership.organization_id,
+        organization_id=current_user.organization_id,
     )
     
     db.add(new_template)
@@ -458,7 +429,7 @@ async def create_job_template(
 @router.post("/from-template/{template_id}", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job_from_template(
     template_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -469,7 +440,7 @@ async def create_job_from_template(
             and_(
                 JobTemplate.id == template_id,
                 or_(
-                    JobTemplate.organization_id == membership.organization_id,
+                    JobTemplate.organization_id == current_user.organization_id,
                     JobTemplate.is_public == True
                 )
             )
@@ -489,12 +460,12 @@ async def create_job_from_template(
         requirements=template.requirements,
         responsibilities=template.responsibilities,
         department=template.department,
-        job_type=template.job_type,  # Align with model field
+        job_type=template.job_type,
         experience_level=template.experience_level,
         skills_required=template.skills_required,
         status="draft",
-        organization_id=membership.organization_id,
-        created_by=membership.user.id,
+        organization_id=current_user.organization_id,
+        created_by_id=current_user.id,
     )
     
     db.add(new_job)
@@ -507,95 +478,25 @@ async def create_job_from_template(
     return new_job
 
 
-@router.post("/{job_id}/publish-public", response_model=JobResponse)
-async def publish_job_public(
-    job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Publish a job publicly with a unique slug.
-    """
-    result = await db.execute(
-        select(Job).where(and_(
-            Job.id == job_id,
-            Job.organization_id == membership.organization_id
-        ))
-    )
-    job = result.scalar_one_or_none()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-    
-    if job.status != "open":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only open jobs can be published publicly",
-        )
-    
-    # Generate unique slug if not exists
-    if not job.public_slug:
-        await job.generate_slug(db)
-    
-    # Set public and published timestamp
-    job.is_public = True
-    job.published_at = datetime.utcnow()
-    
-    await db.commit()
-    await db.refresh(job)
-    
-    return job
-
-
-@router.post("/{job_id}/unpublish", response_model=JobResponse)
-async def unpublish_job(
-    job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Unpublish a job from public view.
-    """
-    result = await db.execute(
-        select(Job).where(and_(
-            Job.id == job_id,
-            Job.organization_id == membership.organization_id
-        ))
-    )
-    job = result.scalar_one_or_none()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-    
-    job.is_public = False
-    
-    await db.commit()
-    await db.refresh(job)
-    
-    return job
-
-
-@router.get("/public/{slug}", response_model=PublicJobResponse)
+@router.get("/public/{public_url}", response_model=PublicJobResponse)
 async def get_public_job(
-    slug: str,
+    public_url: str,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get a public job by slug (no auth required).
+    Get a public job posting by its public URL.
+    No authentication required.
     """
     result = await db.execute(
-        select(Job).where(and_(
-            Job.public_slug == slug,
-            Job.is_public == True,
-            Job.status == "open"
-        )).options(
-            selectinload(Job.organization)
+        select(Job).where(
+            and_(
+                Job.public_url == public_url,
+                Job.is_public == True,
+                Job.status == "open"
+            )
+        ).options(
+            selectinload(Job.organization),
+            selectinload(Job.stages)
         )
     )
     job = result.scalar_one_or_none()
@@ -603,110 +504,31 @@ async def get_public_job(
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
+            detail="Job not found or not publicly available",
         )
     
-    # Increment view count
-    job.view_count += 1
-    await db.commit()
-    
-    # Build response with conditional salary visibility
-    response_data = {
+    # Return job with organization name
+    return {
         **job.__dict__,
         "organization_name": job.organization.name if job.organization else None,
     }
-    
-    if not job.show_salary_public:
-        response_data["salary_min"] = None
-        response_data["salary_max"] = None
-        response_data["salary_currency"] = None
-    
-    return response_data
 
 
-@router.get("/{job_id}/share-links", response_model=ShareLinksResponse)
-async def get_share_links(
+@router.post("/{job_id}/share", status_code=status.HTTP_201_CREATED)
+async def track_job_share(
     job_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    platform: str,
+    share_url: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Get share links for a job.
+    Track when a job is shared on social media.
     """
+    # Verify job exists and is public
     result = await db.execute(
-        select(Job).where(and_(
-            Job.id == job_id,
-            Job.organization_id == membership.organization_id,
-            Job.is_public == True
-        ))
+        select(Job).where(Job.id == job_id)
     )
-    job = result.scalar_one_or_none()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Public job not found",
-        )
-    
-    public_url = job.get_public_url()
-    if not public_url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Job has no public URL",
-        )
-    
-    share_links = [
-        {
-            "platform": "linkedin",
-            "url": f"https://www.linkedin.com/sharing/share-offsite/?url={public_url}",
-            "text": f"Check out this job: {job.title}"
-        },
-        {
-            "platform": "twitter",
-            "url": f"https://twitter.com/intent/tweet?text={job.title}&url={public_url}",
-            "text": f"Tweet this job: {job.title}"
-        },
-        {
-            "platform": "facebook",
-            "url": f"https://www.facebook.com/sharer/sharer.php?u={public_url}",
-            "text": f"Share this job on Facebook: {job.title}"
-        },
-        {
-            "platform": "email",
-            "url": f"mailto:?subject={job.title}&body={public_url}",
-            "text": f"Email this job: {job.title}"
-        },
-        {
-            "platform": "copy",
-            "url": public_url,
-            "text": f"Copy link: {public_url}"
-        }
-    ]
-    
-    return {
-        "job_id": job_id,
-        "job_title": job.title,
-        "public_url": public_url,
-        "share_links": share_links
-    }
-
-
-@router.post("/{job_id}/track-share", status_code=status.HTTP_200_OK)
-async def track_share(
-    job_id: UUID,
-    share_data: TrackShareRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Track job shares with rate limiting.
-    """
-    # Simple rate limiting (in production, use Redis)
-    client_ip = request.client.host
-    rate_key = f"share:{client_ip}:{job_id}"
-    
-    # For now, just increment counters
-    result = await db.execute(select(Job).where(Job.id == job_id))
     job = result.scalar_one_or_none()
     
     if not job:
@@ -715,46 +537,15 @@ async def track_share(
             detail="Job not found",
         )
     
-    job.share_count += 1
+    # Create share tracking record
+    share = JobShare(
+        job_id=job_id,
+        shared_by=current_user.id if current_user else None,
+        platform=platform,
+        share_url=share_url,
+    )
     
-    # Update share metadata
-    metadata = job.share_metadata or {}
-    platform_count = metadata.get(share_data.platform, 0)
-    metadata[share_data.platform] = platform_count + 1
-    job.share_metadata = metadata
-    
+    db.add(share)
     await db.commit()
     
     return {"message": "Share tracked successfully"}
-
-
-@router.patch("/{job_id}/salary-visibility", response_model=JobResponse)
-async def update_salary_visibility(
-    job_id: UUID,
-    visibility_data: SalaryVisibilityUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Update salary visibility for public job.
-    """
-    result = await db.execute(
-        select(Job).where(and_(
-            Job.id == job_id,
-            Job.organization_id == membership.organization_id
-        ))
-    )
-    job = result.scalar_one_or_none()
-    
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found",
-        )
-    
-    job.show_salary_public = visibility_data.show_salary_public
-    
-    await db.commit()
-    await db.refresh(job)
-    
-    return job

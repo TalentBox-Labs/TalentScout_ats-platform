@@ -15,7 +15,7 @@ class JobCreate(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    job_type: Optional[str] = Field(default="full_time", pattern="^(full_time|part_time|contract|internship|temporary)$")
+    employment_type: Optional[str] = Field(default="full_time", pattern="^(full_time|part_time|contract|temporary|internship)$")
     experience_level: Optional[str] = Field(default="mid", pattern="^(entry|junior|mid|senior|lead|principal)$")
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
@@ -31,19 +31,21 @@ class JobUpdate(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    job_type: Optional[str] = None
+    employment_type: Optional[str] = None
     experience_level: Optional[str] = None
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
     salary_currency: Optional[str] = None
     skills_required: Optional[List[str]] = None
-    status: Optional[str] = Field(None, pattern="^(draft|open|closed|on_hold)$")
+    status: Optional[str] = Field(None, pattern="^(draft|open|closed|on_hold|cancelled)$")
+    is_public: Optional[bool] = None
 
 
 class JobStageCreate(BaseModel):
     """Schema for creating a job stage."""
     name: str = Field(..., min_length=1, max_length=100)
     order: int = Field(..., ge=1)
+    stage_type: str = Field(default="custom", pattern="^(application|screening|interview|assessment|offer|hired|rejected|custom)$")
 
 
 class JobStageUpdate(BaseModel):
@@ -58,9 +60,7 @@ class JobStageResponse(BaseModel):
     job_id: UUID
     name: str
     order: int
-    color: str
-    description: Optional[str] = None
-    is_system: bool
+    stage_type: str
     created_at: datetime
     
     class Config:
@@ -76,7 +76,7 @@ class JobResponse(BaseModel):
     responsibilities: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    job_type: str
+    employment_type: str
     experience_level: str
     salary_min: Optional[int] = None
     salary_max: Optional[int] = None
@@ -84,18 +84,32 @@ class JobResponse(BaseModel):
     skills_required: List[str]
     status: str
     organization_id: UUID
-    created_by: UUID
+    created_by_id: Optional[UUID] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     stages: Optional[List[JobStageResponse]] = None
-    is_public: bool
-    public_slug: Optional[str] = None
-    share_count: int
-    share_metadata: Dict[str, Any]
-    og_image_url: Optional[str] = None
-    published_at: Optional[datetime] = None
-    view_count: int
-    show_salary_public: bool
+    
+    class Config:
+        from_attributes = True
+
+
+class PublicJobResponse(BaseModel):
+    """Schema for public job response (no sensitive data)."""
+    id: UUID
+    title: str
+    description: str
+    requirements: Optional[str] = None
+    responsibilities: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    employment_type: str
+    experience_level: str
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    salary_currency: Optional[str] = None
+    skills_required: List[str]
+    organization_name: Optional[str] = None
+    created_at: datetime
     
     class Config:
         from_attributes = True
@@ -107,7 +121,7 @@ class JobListResponse(BaseModel):
     title: str
     department: Optional[str] = None
     location: Optional[str] = None
-    job_type: str
+    employment_type: str
     experience_level: str
     status: str
     created_at: datetime
@@ -125,7 +139,7 @@ class JobTemplateCreate(BaseModel):
     requirements: Optional[str] = None
     responsibilities: Optional[str] = None
     department: Optional[str] = None
-    job_type: str = Field(default="full_time")
+    employment_type: str = Field(default="full_time")
     experience_level: str = Field(default="mid")
     skills_required: Optional[List[str]] = None
 
@@ -139,7 +153,7 @@ class JobTemplateResponse(BaseModel):
     requirements: Optional[str] = None
     responsibilities: Optional[str] = None
     department: Optional[str] = None
-    job_type: str
+    employment_type: str
     experience_level: str
     skills_required: List[str]
     is_public: bool
@@ -148,53 +162,3 @@ class JobTemplateResponse(BaseModel):
     
     class Config:
         from_attributes = True
-
-
-class PublicJobResponse(BaseModel):
-    """Schema for public job response (no sensitive data)."""
-    id: UUID
-    title: str
-    description: str
-    requirements: Optional[str] = None
-    responsibilities: Optional[str] = None
-    department: Optional[str] = None
-    location: Optional[str] = None
-    job_type: str
-    experience_level: str
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
-    salary_currency: Optional[str] = None
-    skills_required: List[str]
-    organization_name: Optional[str] = None
-    created_at: datetime
-    published_at: Optional[datetime] = None
-    view_count: int
-    share_count: int
-    
-    class Config:
-        from_attributes = True
-
-
-class ShareLinkResponse(BaseModel):
-    """Schema for share link response."""
-    platform: str
-    url: str
-    text: str
-
-
-class ShareLinksResponse(BaseModel):
-    """Schema for aggregate share links response."""
-    job_id: UUID
-    job_title: str
-    public_url: str
-    share_links: List[ShareLinkResponse]
-
-
-class TrackShareRequest(BaseModel):
-    """Schema for tracking share requests."""
-    platform: str = Field(..., pattern="^(linkedin|twitter|facebook|email|copy)$")
-
-
-class SalaryVisibilityUpdate(BaseModel):
-    """Schema for updating salary visibility."""
-    show_salary_public: bool

@@ -1,0 +1,9 @@
+# Optional AI/NLP stack (install only when required for advanced features).
+# Recommended: use Python 3.12 for this stack on Windows to avoid native build issues.
+
+langchain==0.1.6; python_version < "3.13"
+langchain-openai==0.0.5; python_version < "3.13"
+sentence-transformers==2.3.1; python_version < "3.13"
+transformers==4.37.2; python_version < "3.13"
+spacy==3.7.2; python_version < "3.13"
+spacy>=3.8.0; python_version >= "3.13"

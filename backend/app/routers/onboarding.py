@@ -7,14 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.user import User
-from app.middleware.auth import get_current_membership, CurrentMembership
+from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 
 @router.get("/status", response_model=Dict[str, Any])
 async def get_onboarding_status(
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -67,7 +67,7 @@ async def get_onboarding_status(
 @router.post("/complete/{step_id}", response_model=Dict[str, Any])
 async def complete_onboarding_step(
     step_id: str,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """

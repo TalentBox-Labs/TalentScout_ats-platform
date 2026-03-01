@@ -73,7 +73,7 @@ async def _screen_candidate_async(application_id: str):
             "email": candidate.email,
             "current_position": candidate.current_position,
             "current_company": candidate.current_company,
-            "years_of_experience": candidate.total_experience_years,
+            "years_of_experience": candidate.years_of_experience,
             "location": candidate.location,
             "summary": candidate.summary,
             "resume_text": "",  # Should fetch from parsed resume

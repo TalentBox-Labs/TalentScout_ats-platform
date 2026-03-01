@@ -14,7 +14,7 @@ from app.models.user import User
 from app.models.application import Application, ApplicationActivity, ApplicationNote, ApplicationScore, ActivityType
 from app.models.candidate import Candidate
 from app.models.job import Job, JobStage
-from app.middleware.auth import get_current_membership, CurrentMembership
+from app.middleware.auth import get_current_user
 from app.schemas.application import (
     ApplicationCreate,
     ApplicationUpdate,
@@ -40,7 +40,7 @@ async def list_applications(
     status_filter: Optional[str] = Query(None, description="Filter by status"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -49,7 +49,7 @@ async def list_applications(
     query = (
         select(Application)
         .join(Job)
-        .where(Job.organization_id == membership.organization_id)
+        .where(Job.organization_id == current_user.organization_id)
         .options(
             selectinload(Application.candidate),
             selectinload(Application.job).selectinload(Job.stages),
@@ -76,7 +76,7 @@ async def list_applications(
 @router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
 async def create_application(
     app_data: ApplicationCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -88,7 +88,7 @@ async def create_application(
         select(Candidate).where(
             and_(
                 Candidate.id == app_data.candidate_id,
-                Candidate.organization_id == membership.organization_id
+                Candidate.organization_id == current_user.organization_id
             )
         )
     )
@@ -105,7 +105,7 @@ async def create_application(
         select(Job).where(
             and_(
                 Job.id == app_data.job_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -154,7 +154,7 @@ async def create_application(
         status="active",
         source=app_data.source or "manual",
         cover_letter=app_data.cover_letter,
-        organization_id=membership.organization_id,
+        organization_id=current_user.organization_id,
     )
     
     db.add(new_application)
@@ -167,7 +167,7 @@ async def create_application(
         activity_type=ActivityType.CREATED,
         title="Application Created",
         description="Application created",
-        user_id=membership.user.id,
+        user_id=current_user.id,
     )
     db.add(activity)
     await db.commit()
@@ -181,7 +181,7 @@ async def create_application(
 @router.get("/{application_id}", response_model=ApplicationResponse)
 async def get_application(
     application_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -193,7 +193,7 @@ async def get_application(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
         .options(
@@ -218,7 +218,7 @@ async def get_application(
 async def update_application(
     application_id: UUID,
     app_data: ApplicationUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -230,7 +230,7 @@ async def update_application(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -256,7 +256,7 @@ async def update_application(
 async def move_to_stage(
     application_id: UUID,
     stage_data: ApplicationStageUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -268,7 +268,7 @@ async def move_to_stage(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -288,7 +288,7 @@ async def move_to_stage(
             and_(
                 JobStage.id == stage_data.current_stage,
                 Job.id == application.job_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -309,7 +309,7 @@ async def move_to_stage(
         activity_type=ActivityType.STAGE_CHANGED,
         title="Stage Changed",
         description=f"Moved to stage {stage_data.current_stage}",
-        user_id=membership.user.id,
+        user_id=current_user.id,
         activity_metadata={"old_stage_id": str(old_stage_id), "new_stage_id": str(stage_data.current_stage)},
     )
     db.add(activity)
@@ -324,7 +324,7 @@ async def move_to_stage(
 async def update_status(
     application_id: UUID,
     status_data: ApplicationStatusUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -336,7 +336,7 @@ async def update_status(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -357,7 +357,7 @@ async def update_status(
         activity_type=ActivityType.STATUS_CHANGED,
         title="Status Changed",
         description=f"Status changed from {old_status} to {status_data.status}",
-        user_id=membership.user.id,
+        user_id=current_user.id,
         activity_metadata={"old_status": old_status, "new_status": status_data.status, "reason": status_data.reason},
     )
     db.add(activity)
@@ -372,7 +372,7 @@ async def update_status(
 async def add_note(
     application_id: UUID,
     note_data: NoteCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -385,7 +385,7 @@ async def add_note(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -399,7 +399,7 @@ async def add_note(
     
     new_note = ApplicationNote(
         application_id=application_id,
-        user_id=membership.user.id,
+        user_id=current_user.id,
         content=note_data.content,
         is_private=note_data.is_private,
     )
@@ -412,7 +412,7 @@ async def add_note(
         activity_type=ActivityType.NOTE_ADDED,
         title="Note Added",
         description=f"Note added by {current_user.first_name} {current_user.last_name}",
-        user_id=membership.user.id,
+        user_id=current_user.id,
     )
     db.add(activity)
     
@@ -427,7 +427,7 @@ async def add_note(
 @router.get("/{application_id}/activities", response_model=List[ActivityResponse])
 async def get_activities(
     application_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -440,7 +440,7 @@ async def get_activities(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -467,7 +467,7 @@ async def get_activities(
 async def add_score(
     application_id: UUID,
     score_data: ScoreCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -480,7 +480,7 @@ async def add_score(
         .where(
             and_(
                 Application.id == application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -494,7 +494,7 @@ async def add_score(
     
     new_score = ApplicationScore(
         application_id=application_id,
-        user_id=membership.user.id,
+        user_id=current_user.id,
         category=score_data.category,
         score=score_data.score,
         max_score=score_data.max_score,
@@ -509,7 +509,7 @@ async def add_score(
         activity_type=ActivityType.SCORE_UPDATED,
         title="Score Added",
         description=f"Score added: {score_data.category} - {score_data.score}/{score_data.max_score}",
-        user_id=membership.user.id,
+        user_id=current_user.id,
     )
     db.add(activity)
     

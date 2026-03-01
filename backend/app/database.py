@@ -1,9 +1,7 @@
 """Database connection and session management."""
 import subprocess
 import sys
-import os
 from typing import AsyncGenerator
-import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -11,14 +9,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
-from contextvars import ContextVar
 from app.config import settings
-
-# Global for test session
-_test_session = None
-
-# Flag to indicate testing mode
-_testing_mode = os.getenv('TESTING', 'false').lower() == 'true'
 
 # Create async engine
 engine = create_async_engine(
@@ -52,27 +43,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     Yields:
         AsyncSession: Database session
     """
-    # In testing mode, always use the test session if available
-    if _testing_mode:
-        if _test_session is not None:
-            yield _test_session
-            return
-        test_session = test_db_session.get()
-        if test_session is not None:
-            yield test_session
-            return
-    
-    # Check if we have a test session from context or global
-    test_session = test_db_session.get()
-    if test_session is not None:
-        yield test_session
-        return
-    
-    # Check global test session
-    if _test_session is not None:
-        yield _test_session
-        return
-    
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -85,16 +55,46 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Initialize database connection."""
+    """Initialize database using Alembic migrations or create tables directly."""
     try:
-        # For SQLite, the database file will be created automatically
-        # Just test the connection
-        async with AsyncSessionLocal() as session:
-            await session.execute(sa.text("SELECT 1"))
-        print("Database connection established successfully")
+        # Run Alembic migrations to create/update database schema
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=False  # Don't fail if migrations fail
+        )
+        if result.returncode == 0:
+            print(f"Database migrations completed successfully: {result.stdout}")
+        else:
+            print(f"Warning: Database migrations failed: {result.stderr}")
+            print("Attempting to create tables directly...")
+
+            # Fallback: Create tables directly using SQLAlchemy
+            try:
+                # Import all models to ensure they are registered with Base
+                from app.models import (
+                    user, job, candidate, application, interview, assessment,
+                    communication, integration
+                )
+                
+                # Convert async URL to sync URL for table creation
+                sync_url = settings.database_url
+                if sync_url.startswith("sqlite+aiosqlite://"):
+                    sync_url = sync_url.replace("sqlite+aiosqlite://", "sqlite:///")
+                elif sync_url.startswith("postgresql+asyncpg://"):
+                    sync_url = sync_url.replace("postgresql+asyncpg://", "postgresql+psycopg://")
+
+                from sqlalchemy import create_engine
+                sync_engine = create_engine(sync_url, echo=settings.debug)
+                Base.metadata.create_all(bind=sync_engine, checkfirst=True)
+                print("Database tables created successfully using SQLAlchemy!")
+            except Exception as create_e:
+                print(f"Warning: Failed to create tables directly: {create_e}")
+                print("Continuing with application startup...")
     except Exception as e:
-        print(f"Error initializing database: {e}")
-        raise
+        print(f"Warning: Database initialization failed: {e}")
+        print("Continuing with application startup...")
 
 
 async def close_db() -> None:

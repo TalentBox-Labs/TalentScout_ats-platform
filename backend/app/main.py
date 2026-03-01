@@ -11,8 +11,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
     print("🚀 Starting ATS Platform API...")
-    await init_db()
-    print("✅ Database initialized")
+    try:
+        await init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Database initialization failed: {e}")
+        print("🚀 Continuing with application startup...")
     
     yield
     
@@ -66,7 +70,6 @@ async def root():
 
 # Import and include routers
 from app.routers import (
-    admin,
     auth,
     organizations,
     jobs,
@@ -82,7 +85,6 @@ from app.routers import (
     integrations,
 )
 
-app.include_router(admin.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(organizations.router, prefix=f"{settings.api_v1_prefix}")
 app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}")

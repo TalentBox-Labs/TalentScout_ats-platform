@@ -1,5 +1,6 @@
 """Interview-related models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -30,8 +31,8 @@ class Interview(Base, TimeStampMixin):
     
     __tablename__ = "interviews"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    application_id = Column(String, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    application_id = Column(UUID(as_uuid=False), ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
     
     # Interview Details
     title = Column(String(255), nullable=False)
@@ -73,9 +74,9 @@ class InterviewParticipant(Base, TimeStampMixin):
     
     __tablename__ = "interview_participants"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    interview_id = Column(String, ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    interview_id = Column(UUID(as_uuid=False), ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     is_required = Column(Boolean, default=True)  # Required vs optional attendee
     has_confirmed = Column(Boolean, default=False)
@@ -94,9 +95,9 @@ class InterviewFeedback(Base, TimeStampMixin):
     
     __tablename__ = "interview_feedback"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    interview_id = Column(String, ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False)
-    interviewer_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    interview_id = Column(UUID(as_uuid=False), ForeignKey("interviews.id", ondelete="CASCADE"), nullable=False)
+    interviewer_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
     
     # Feedback
     overall_rating = Column(Integer)  # 1-5 scale

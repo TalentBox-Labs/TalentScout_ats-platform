@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { Header } from '@/components/dashboard/Header';
 
@@ -11,23 +11,22 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
-      router.push('/auth/login');
+      router.replace(`/auth/login?next=${encodeURIComponent(pathname || '/dashboard')}`);
     }
-  }, [router]);
+  }, [router, pathname]);
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-gray-50/50 to-blue-50/30">
+    <div className="flex h-screen bg-background text-foreground">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-white/40 backdrop-blur-sm p-8">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
         </main>
       </div>
     </div>
