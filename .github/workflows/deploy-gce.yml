@@ -84,23 +84,25 @@ jobs:
         gcloud compute ssh ${{ secrets.GCE_INSTANCE_NAME }} \
           --zone=${{ secrets.GCE_ZONE }} \
           --command="
-            # Set environment variables
-            export REGISTRY=$REGISTRY
-            export PROJECT_ID=$PROJECT_ID
-            export REPO_NAME=$REPO_NAME
-            export DATABASE_URL='${{ secrets.DATABASE_URL }}'
-            export REDIS_URL='${{ secrets.REDIS_URL }}'
-            export CELERY_BROKER_URL='${{ secrets.CELERY_BROKER_URL }}'
-            export CELERY_RESULT_BACKEND='${{ secrets.CELERY_RESULT_BACKEND }}'
-            export SECRET_KEY='${{ secrets.SECRET_KEY }}'
-            export OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'
-            export NEXT_PUBLIC_API_URL='${{ secrets.NEXT_PUBLIC_API_URL }}'
-            export POSTGRES_USER='${{ secrets.POSTGRES_USER }}'
-            export POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}'
-            export POSTGRES_DB='${{ secrets.POSTGRES_DB }}'
-            
             # Navigate to app directory
             cd /opt/talentscout
+            
+            # Create environment file with secrets
+            cat > .env << EOF
+            REGISTRY=$REGISTRY
+            PROJECT_ID=$PROJECT_ID
+            REPO_NAME=$REPO_NAME
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            CELERY_BROKER_URL=${{ secrets.CELERY_BROKER_URL }}
+            CELERY_RESULT_BACKEND=${{ secrets.CELERY_RESULT_BACKEND }}
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            EOF
             
             # Pull latest images
             docker pull \$REGISTRY/\$PROJECT_ID/\$REPO_NAME/backend:latest
@@ -110,8 +112,8 @@ jobs:
             docker-compose -f docker-compose.prod.yml down || true
             
             # Start new containers
-            docker-compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml --env-file .env up -d
             
             # Run database migrations if needed
-            docker-compose -f docker-compose.prod.yml exec -T backend alembic upgrade head || echo 'Migration completed or not needed'
+            docker-compose -f docker-compose.prod.yml --env-file .env exec -T backend alembic upgrade head || echo 'Migration completed or not needed'
           "

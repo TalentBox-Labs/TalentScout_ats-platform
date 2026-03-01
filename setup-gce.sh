@@ -23,6 +23,10 @@ sudo chown $USER:$USER /opt/talentscout
 
 # Copy production docker-compose file (you'll need to upload this)
 # scp docker-compose.prod.yml user@instance:/opt/talentscout/
+# scp setup-gce.sh user@instance:/opt/talentscout/  # Optional: upload this script too
+
+echo "Please upload docker-compose.prod.yml to /opt/talentscout/ on your instance"
+echo "You can use: scp docker-compose.prod.yml user@your-instance-ip:/opt/talentscout/"
 
 # Create data directories for persistence (optional)
 sudo mkdir -p /opt/talentscout/data/postgres
