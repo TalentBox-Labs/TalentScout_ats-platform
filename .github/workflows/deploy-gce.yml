@@ -87,6 +87,42 @@ jobs:
             # Navigate to app directory
             cd /opt/talentscout
             
+            # Install nginx if not present
+            if ! command -v nginx &> /dev/null; then
+              sudo apt update
+              sudo apt install -y nginx
+              sudo systemctl enable nginx
+            fi
+            
+            # Create nginx configuration
+            sudo tee /etc/nginx/sites-available/talentscout > /dev/null <<EOF
+            server {
+                listen 80;
+                server_name _;
+                
+                location / {
+                    proxy_pass http://localhost:3000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+                
+                location /api {
+                    proxy_pass http://localhost:8000;
+                    proxy_set_header Host \$host;
+                    proxy_set_header X-Real-IP \$remote_addr;
+                    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto \$scheme;
+                }
+            }
+            EOF
+            
+            # Enable the site
+            sudo ln -sf /etc/nginx/sites-available/talentscout /etc/nginx/sites-enabled/
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo nginx -t && sudo systemctl reload nginx
+            
             # Create environment file with secrets
             cat > .env << EOF
             REGISTRY=$REGISTRY
@@ -102,6 +138,7 @@ jobs:
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            ALLOWED_ORIGINS=https://talentscout.workcrew.ai,http://localhost:3000,http://localhost:5173
             EOF
             
             # Pull latest images
@@ -116,4 +153,12 @@ jobs:
             
             # Run database migrations if needed
             docker-compose -f docker-compose.prod.yml --env-file .env exec -T backend alembic upgrade head || echo 'Migration completed or not needed'
+            
+            # Wait for services to be ready
+            sleep 30
+            
+            # Check service health
+            curl -f http://localhost:3000 || echo 'Frontend not ready'
+            curl -f http://localhost:8000/health || echo 'Backend not ready'
+          "
           "
