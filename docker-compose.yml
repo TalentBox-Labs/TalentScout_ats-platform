@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ats_password
       POSTGRES_DB: ats_platform
     ports:
-      - "5432:5432"
+      - "3548:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -27,7 +27,7 @@ services:
     image: redis:7-alpine
     container_name: ats_redis
     ports:
-      - "6379:6379"
+      - "3549:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -53,7 +53,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/1
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
     ports:
-      - "8000:8000"
+      - "3547:8000"
     volumes:
       - ./backend:/app
     depends_on:
@@ -94,9 +94,9 @@ services:
       dockerfile: Dockerfile.dev
     container_name: ats_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://192.168.10.101:3547
     ports:
-      - "3000:3000"
+      - "3546:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules

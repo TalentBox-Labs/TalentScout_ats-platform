@@ -36,3 +36,7 @@ __pycache__/
 # Coverage
 coverage/
 .nyc_output/
+
+# Python virtual environments
+venv/
+backend/venv/

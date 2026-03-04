@@ -2,6 +2,7 @@
 import subprocess
 import sys
 from typing import AsyncGenerator
+from contextvars import ContextVar
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
@@ -10,6 +11,10 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 from app.config import settings
+
+# Test session context variables
+test_db_session: ContextVar[AsyncSession] = ContextVar('test_db_session')
+_test_session: AsyncSession = None
 
 # Create async engine
 engine = create_async_engine(
