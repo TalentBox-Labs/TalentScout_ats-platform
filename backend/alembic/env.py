@@ -15,15 +15,26 @@ from app.config import settings
 # Import all models to ensure they're registered with Base
 from app.models import (
     user, job, candidate, application, interview, 
-    assessment, communication, integration, subscription
+    assessment, communication, integration
 )
 
 # this is the Alembic Config object
 config = context.config
 
-# Set sqlalchemy.url from settings (convert async URL to sync for migrations)
-sync_database_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
-config.set_main_option("sqlalchemy.url", sync_database_url)
+def _get_migration_database_url(url: str) -> str:
+    """
+    Alembic runs with a sync SQLAlchemy engine.
+    Convert async URLs to their sync counterparts for migrations.
+    """
+    if url.startswith("postgresql+asyncpg://"):
+        return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+    elif url.startswith("sqlite+aiosqlite://"):
+        return url.replace("sqlite+aiosqlite://", "sqlite:///", 1)
+    return url
+
+
+# Set sqlalchemy.url from settings (sync driver for Alembic)
+config.set_main_option("sqlalchemy.url", _get_migration_database_url(settings.database_url))
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

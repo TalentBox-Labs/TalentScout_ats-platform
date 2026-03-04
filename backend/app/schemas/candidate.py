@@ -19,7 +19,7 @@ class CandidateCreate(BaseModel):
     portfolio_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    total_experience_years: Optional[int] = None
+    years_of_experience: Optional[int] = None
     source: Optional[str] = "manual"
 
 
@@ -35,14 +35,14 @@ class CandidateUpdate(BaseModel):
     portfolio_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    total_experience_years: Optional[int] = None
+    years_of_experience: Optional[int] = None
 
 
 class ExperienceResponse(BaseModel):
     """Schema for experience response."""
     id: UUID
     company: str
-    position: str
+    title: str
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     is_current: bool
@@ -89,19 +89,14 @@ class CandidateResponse(BaseModel):
     resume_url: Optional[str] = None
     current_position: Optional[str] = None
     current_company: Optional[str] = None
-    total_experience_years: Optional[int] = None
+    years_of_experience: Optional[int] = None
     summary: Optional[str] = None
-    source: Optional[str] = Field(default=None, alias="source_name")
     organization_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
     experiences: Optional[List[ExperienceResponse]] = None
     education: Optional[List[EducationResponse]] = None
     skills: Optional[List[SkillResponse]] = None
-    
-    class Config:
-        from_attributes = True
-        allow_population_by_field_name = True
     
     class Config:
         from_attributes = True
@@ -116,7 +111,7 @@ class CandidateListResponse(BaseModel):
     current_position: Optional[str] = None
     current_company: Optional[str] = None
     location: Optional[str] = None
-    total_experience_years: Optional[int] = None
+    years_of_experience: Optional[int] = None
     created_at: datetime
     
     class Config:

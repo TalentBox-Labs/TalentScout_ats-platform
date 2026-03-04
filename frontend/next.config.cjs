@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone',
   images: {
     domains: ['localhost', 's3.amazonaws.com'],
   },
@@ -16,4 +17,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+export default nextConfig

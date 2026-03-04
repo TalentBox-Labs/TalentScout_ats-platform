@@ -1,6 +1,8 @@
 """Candidate-related models."""
 from sqlalchemy import Column, String, Text, ForeignKey, Integer, Boolean, JSON, Float, Date
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 from app.database import Base
 from app.models.base import TimeStampMixin, generate_uuid
 
@@ -10,8 +12,8 @@ class Candidate(Base, TimeStampMixin):
     
     __tablename__ = "candidates"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     
     # Basic Info
     email = Column(String(255), nullable=False, index=True)
@@ -41,7 +43,7 @@ class Candidate(Base, TimeStampMixin):
     parsed_resume = Column(JSON, default=dict)  # Full parsed data
     
     # AI Features
-    resume_embedding = Column(JSON, default=list)  # For semantic search (using JSON for SQLite dev)
+    resume_embedding = Column(Vector(1536))  # For semantic search
     ai_summary = Column(Text)  # AI-generated summary
     quality_score = Column(Float)  # AI quality score 0-100
     tags = Column(JSON, default=list)  # AI-generated tags
@@ -61,7 +63,7 @@ class Candidate(Base, TimeStampMixin):
     gdpr_consent_date = Column(String(255))
     
     # Source tracking
-    source_id = Column(String, ForeignKey("candidate_sources.id", ondelete="SET NULL"))
+    source_id = Column(UUID(as_uuid=False), ForeignKey("candidate_sources.id", ondelete="SET NULL"))
     source_details = Column(JSON, default=dict)  # Additional source info
     
     # Relationships
@@ -77,13 +79,17 @@ class Candidate(Base, TimeStampMixin):
         """Get candidate's full name."""
         return f"{self.first_name} {self.last_name}"
     
-    @property
-    def source_name(self):
-        """Get the source name from the related CandidateSource."""
-        return self.source.name if self.source else None
-    
     def __repr__(self):
         return f"<Candidate {self.full_name}>"
+
+    @property
+    def years_of_experience(self):
+        """Compatibility alias for API schemas using years_of_experience."""
+        return self.total_experience_years
+
+    @years_of_experience.setter
+    def years_of_experience(self, value):
+        self.total_experience_years = value
 
 
 class CandidateExperience(Base, TimeStampMixin):
@@ -91,8 +97,8 @@ class CandidateExperience(Base, TimeStampMixin):
     
     __tablename__ = "candidate_experiences"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    candidate_id = Column(String, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    candidate_id = Column(UUID(as_uuid=False), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
     
     company = Column(String(255), nullable=False)
     title = Column(String(255), nullable=False)
@@ -114,8 +120,8 @@ class CandidateEducation(Base, TimeStampMixin):
     
     __tablename__ = "candidate_education"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    candidate_id = Column(String, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    candidate_id = Column(UUID(as_uuid=False), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
     
     institution = Column(String(255), nullable=False)
     degree = Column(String(255))  # e.g., "Bachelor of Science"
@@ -137,8 +143,8 @@ class CandidateSkill(Base, TimeStampMixin):
     
     __tablename__ = "candidate_skills"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    candidate_id = Column(String, ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    candidate_id = Column(UUID(as_uuid=False), ForeignKey("candidates.id", ondelete="CASCADE"), nullable=False)
     
     name = Column(String(100), nullable=False, index=True)
     category = Column(String(100))  # e.g., "Programming Language", "Framework"
@@ -158,8 +164,8 @@ class CandidateSource(Base, TimeStampMixin):
     
     __tablename__ = "candidate_sources"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     
     name = Column(String(100), nullable=False)  # e.g., "LinkedIn", "Referral", "Job Board"
     type = Column(String(50))  # e.g., "job_board", "referral", "direct", "agency"

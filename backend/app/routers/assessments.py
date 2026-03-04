@@ -14,7 +14,7 @@ from app.models.user import User
 from app.models.assessment import ScreeningTemplate, Assessment, AssessmentResponse, AssessmentStatus
 from app.models.application import Application
 from app.models.job import Job
-from app.middleware.auth import get_current_membership, CurrentMembership
+from app.middleware.auth import get_current_user
 from app.schemas.assessment import (
     ScreeningTemplateCreate,
     ScreeningTemplateUpdate,
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 @router.get("/templates", response_model=List[ScreeningTemplateResponse])
 async def list_screening_templates(
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -40,7 +40,7 @@ async def list_screening_templates(
     """
     result = await db.execute(
         select(ScreeningTemplate)
-        .where(ScreeningTemplate.organization_id == membership.organization_id)
+        .where(ScreeningTemplate.organization_id == current_user.organization_id)
         .options(selectinload(ScreeningTemplate.questions))
         .order_by(ScreeningTemplate.created_at.desc())
     )
@@ -52,7 +52,7 @@ async def list_screening_templates(
 @router.post("/templates", response_model=ScreeningTemplateResponse, status_code=status.HTTP_201_CREATED)
 async def create_screening_template(
     template_data: ScreeningTemplateCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -62,7 +62,7 @@ async def create_screening_template(
         name=template_data.name,
         description=template_data.description,
         questions=[q.model_dump() for q in template_data.questions],  # Store as JSON
-        organization_id=membership.organization_id,
+        organization_id=current_user.organization_id,
     )
     
     db.add(new_template)
@@ -75,7 +75,7 @@ async def create_screening_template(
 @router.get("/templates/{template_id}", response_model=ScreeningTemplateResponse)
 async def get_screening_template(
     template_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -86,7 +86,7 @@ async def get_screening_template(
         .where(
             and_(
                 ScreeningTemplate.id == template_id,
-                ScreeningTemplate.organization_id == membership.organization_id
+                ScreeningTemplate.organization_id == current_user.organization_id
             )
         )
         .options(selectinload(ScreeningTemplate.questions))
@@ -106,7 +106,7 @@ async def get_screening_template(
 async def update_screening_template(
     template_id: UUID,
     template_data: ScreeningTemplateUpdate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -116,7 +116,7 @@ async def update_screening_template(
         select(ScreeningTemplate).where(
             and_(
                 ScreeningTemplate.id == template_id,
-                ScreeningTemplate.organization_id == membership.organization_id
+                ScreeningTemplate.organization_id == current_user.organization_id
             )
         )
     )
@@ -142,7 +142,7 @@ async def update_screening_template(
 @router.post("", response_model=AssessmentResponseSchema, status_code=status.HTTP_201_CREATED)
 async def create_assessment(
     assessment_data: AssessmentCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -155,7 +155,7 @@ async def create_assessment(
         .where(
             and_(
                 Application.id == assessment_data.application_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -172,7 +172,7 @@ async def create_assessment(
         select(ScreeningTemplate).where(
             and_(
                 ScreeningTemplate.id == assessment_data.template_id,
-                ScreeningTemplate.organization_id == membership.organization_id
+                ScreeningTemplate.organization_id == current_user.organization_id
             )
         )
     )
@@ -201,7 +201,7 @@ async def create_assessment(
 @router.get("/{assessment_id}", response_model=AssessmentResponseSchema)
 async def get_assessment(
     assessment_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -214,7 +214,7 @@ async def get_assessment(
         .where(
             and_(
                 Assessment.id == assessment_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
         .options(
@@ -237,7 +237,7 @@ async def get_assessment(
 async def submit_assessment_responses(
     assessment_id: UUID,
     response_data: AssessmentResponseCreate,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -251,7 +251,7 @@ async def submit_assessment_responses(
         .where(
             and_(
                 Assessment.id == assessment_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
     )
@@ -279,7 +279,7 @@ async def submit_assessment_responses(
 @router.post("/{assessment_id}/score", response_model=AssessmentResponseSchema)
 async def score_assessment(
     assessment_id: UUID,
-    membership: CurrentMembership = Depends(get_current_membership),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -293,7 +293,7 @@ async def score_assessment(
         .where(
             and_(
                 Assessment.id == assessment_id,
-                Job.organization_id == membership.organization_id
+                Job.organization_id == current_user.organization_id
             )
         )
         .options(

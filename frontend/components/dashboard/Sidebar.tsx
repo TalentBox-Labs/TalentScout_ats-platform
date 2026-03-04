@@ -5,151 +5,120 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useUser } from '@/lib/user-context';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   Briefcase,
   Users,
-  GitBranch,
-  Calendar,
-  Mail,
-  BarChart3,
+  BrainCircuit,
+  ChevronUp,
+  UserCircle,
   Settings,
-  FileText,
-  Sparkles,
-  Shield,
 } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, implemented: true },
-  { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase, implemented: true },
-  { name: 'Candidates', href: '/dashboard/candidates', icon: Users, implemented: true },
-  { name: 'Pipeline', href: '/dashboard/pipeline', icon: GitBranch, implemented: false }, // TODO: Implement pipeline view
-  { name: 'Interviews', href: '/dashboard/interviews', icon: Calendar, implemented: false }, // TODO: Implement interview scheduling
-  { name: 'Communications', href: '/dashboard/communications', icon: Mail, implemented: false }, // TODO: Implement email communications
-  { name: 'Reports', href: '/dashboard/reports', icon: FileText, implemented: false }, // TODO: Implement reporting system
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, implemented: false }, // TODO: Implement analytics dashboard
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings, implemented: false }, // TODO: Implement settings page
-];
-
-const adminNavigation = [
-  { name: 'Admin Dashboard', href: '/dashboard/admin', icon: Shield, implemented: true },
-  { name: 'User Management', href: '/dashboard/admin/users', icon: Users, implemented: true },
-  { name: 'Organizations', href: '/dashboard/admin/organizations', icon: Settings, implemented: true },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Jobs', href: '/dashboard/jobs', icon: Briefcase },
+  { name: 'Candidates', href: '/dashboard/candidates', icon: Users },
+  { name: 'AI Hiring Plan', href: '/dashboard/pipeline', icon: BrainCircuit },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => apiClient.getCurrentUser(),
+  });
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const fullName = user ? `${user.first_name} ${user.last_name}` : 'Loading...';
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
+    : '--';
 
   return (
-    <div className="flex w-64 flex-col bg-white/95 backdrop-blur-sm border-r border-gray-200/50 shadow-xl">
+    <div className="flex w-64 flex-col border-r border-border bg-background">
       {/* Logo */}
-      <div className="flex h-16 items-center px-6 border-b border-gray-200/50 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            TalentScout
-          </h1>
-        </div>
+      <div className="flex h-16 items-center border-b border-border px-6">
+        <h1 className="text-xl font-bold text-blue-600">TalentScout</h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-2 px-4 py-6">
-        {/* Regular Navigation */}
+      <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
           const Icon = item.icon;
-
-          if (!item.implemented) {
-            return (
-              <div
-                key={item.name}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 cursor-not-allowed opacity-50"
-                title="Coming soon"
-              >
-                <Icon className="h-5 w-5" />
-                <span className="font-semibold">{item.name}</span>
-              </div>
-            );
-          }
 
           return (
             <Link
               key={item.name}
               href={item.href}
               className={`
-                flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group
+                flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
                 ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600'
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-foreground hover:bg-muted'
                 }
               `}
             >
-              <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'text-white' : 'group-hover:scale-110'}`} />
-              <span className="font-semibold">{item.name}</span>
-              {isActive && (
-                <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              )}
+              <Icon className="h-5 w-5" />
+              {item.name}
             </Link>
           );
         })}
-
-        {/* Admin Navigation - Only show for super admins */}
-        {user?.is_super_admin && (
-          <>
-            <div className="border-t border-gray-200/50 my-4"></div>
-            <div className="px-4 py-2">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</h3>
-            </div>
-            {adminNavigation.map((item) => {
-              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`
-                    flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 group
-                    ${
-                      isActive
-                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
-                        : 'text-gray-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-600'
-                    }
-                  `}
-                >
-                  <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'text-white' : 'group-hover:scale-110'}`} />
-                  <span className="font-semibold">{item.name}</span>
-                  {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  )}
-                </Link>
-              );
-            })}
-          </>
-        )}
       </nav>
 
       {/* User section */}
-      <div className="border-t border-gray-200/50 p-4 bg-gradient-to-r from-gray-50/50 to-blue-50/50">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold shadow-lg">
-            {user ? `${user.first_name?.[0]}${user.last_name?.[0]}`.toUpperCase() : 'U'}
+      <div className="relative border-t border-border p-4" ref={menuRef}>
+        {menuOpen && (
+          <div className="absolute bottom-20 left-4 right-4 z-20 rounded-md border border-border bg-popover p-1 shadow-md">
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-2 py-2 text-sm text-popover-foreground hover:bg-muted"
+            >
+              <UserCircle className="h-4 w-4" />
+              Profile
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-sm px-2 py-2 text-sm text-popover-foreground hover:bg-muted"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Link>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="flex w-full items-center gap-3 rounded-md p-1 text-left hover:bg-muted"
+        >
+          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">
-              {user ? `${user.first_name} ${user.last_name}` : 'Loading...'}
-            </p>
-            <p className="text-xs text-gray-600 truncate">
-              {user?.is_super_admin ? 'Super Admin' : 'Administrator'}
-            </p>
+            <p className="truncate text-sm font-medium text-foreground">{fullName}</p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email || ' '}</p>
           </div>
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Online"></div>
-        </div>
+          <ChevronUp className={`h-4 w-4 text-muted-foreground transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+        </button>
       </div>
     </div>
   );

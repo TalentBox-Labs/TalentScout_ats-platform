@@ -1,6 +1,8 @@
 """Job-related models."""
-from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON, Float, DateTime
+from sqlalchemy import Column, String, Text, ForeignKey, Enum as SQLEnum, Integer, Boolean, JSON, Float
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from pgvector.sqlalchemy import Vector
 import enum
 from app.database import Base
 from app.models.base import TimeStampMixin, generate_uuid
@@ -39,9 +41,9 @@ class Job(Base, TimeStampMixin):
     
     __tablename__ = "jobs"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
     
     # Basic Info
     title = Column(String(255), nullable=False, index=True)
@@ -67,46 +69,46 @@ class Job(Base, TimeStampMixin):
     openings = Column(Integer, default=1)  # Number of positions
     
     # AI Features
-    embedding = Column(JSON, default=list)  # OpenAI embedding dimension (using JSON for SQLite dev)
+    embedding = Column(Vector(1536))  # OpenAI embedding dimension
     skills_required = Column(JSON, default=list)  # List of required skills
     skills_preferred = Column(JSON, default=list)  # List of preferred skills
     
     # Settings
     is_internal = Column(Boolean, default=False)  # Internal posting only
+    is_public = Column(Boolean, default=False)  # Public posting enabled
+    public_url = Column(String(500), unique=True)  # Public URL slug
     application_deadline = Column(String(255))
     settings = Column(JSON, default=dict)  # Custom settings
-    
-    # Public Job Features
-    is_public = Column(Boolean, default=False, index=True)
-    public_slug = Column(String(255), unique=True, index=True)
-    share_count = Column(Integer, default=0)
-    share_metadata = Column(JSON, default=dict)
-    og_image_url = Column(String(500))
-    published_at = Column(DateTime)
-    view_count = Column(Integer, default=0)
-    show_salary_public = Column(Boolean, default=False)
     
     # Relationships
     organization = relationship("Organization", back_populates="jobs")
     created_by_user = relationship("User", back_populates="created_jobs", foreign_keys=[created_by])
     stages = relationship("JobStage", back_populates="job", cascade="all, delete-orphan", order_by="JobStage.order")
     applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
+    shares = relationship("JobShare", back_populates="job", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Job {self.title}>"
 
-    async def generate_slug(self, db):
-        """Generate a unique slug from the job title."""
-        from app.utils.slug import generate_slug, generate_unique_slug
-        base_slug = generate_slug(self.title)
-        self.public_slug = await generate_unique_slug(db, "jobs", "public_slug", base_slug)
+    @property
+    def employment_type(self) -> str:
+        """Compatibility alias for API schemas using employment_type."""
+        return self.job_type.value if isinstance(self.job_type, JobType) else str(self.job_type)
 
-    def get_public_url(self):
-        """Get the full public URL for this job."""
-        from app.config import settings
-        if self.public_slug:
-            return f"{settings.frontend_url}/jobs/{self.public_slug}"
-        return None
+    @employment_type.setter
+    def employment_type(self, value: str) -> None:
+        if value is None:
+            return
+        self.job_type = JobType(value)
+
+    @property
+    def created_by_id(self):
+        """Compatibility alias for API schemas using created_by_id."""
+        return self.created_by
+
+    @created_by_id.setter
+    def created_by_id(self, value) -> None:
+        self.created_by = value
 
 
 class JobStage(Base, TimeStampMixin):
@@ -114,8 +116,8 @@ class JobStage(Base, TimeStampMixin):
     
     __tablename__ = "job_stages"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    job_id = Column(String, ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    job_id = Column(UUID(as_uuid=False), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
     
     name = Column(String(100), nullable=False)
     description = Column(Text)
@@ -134,15 +136,20 @@ class JobStage(Base, TimeStampMixin):
     def __repr__(self):
         return f"<JobStage {self.name} for Job {self.job_id}>"
 
+    @property
+    def stage_type(self) -> str:
+        """Compatibility field expected by older API responses."""
+        return "custom"
+
 
 class JobTemplate(Base, TimeStampMixin):
     """Reusable job templates."""
     
     __tablename__ = "job_templates"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))
     
     name = Column(String(255), nullable=False)
     title = Column(String(255), nullable=False)
@@ -163,3 +170,35 @@ class JobTemplate(Base, TimeStampMixin):
     
     def __repr__(self):
         return f"<JobTemplate {self.name}>"
+
+    @property
+    def employment_type(self) -> str:
+        return self.job_type.value if isinstance(self.job_type, JobType) else str(self.job_type)
+
+    @employment_type.setter
+    def employment_type(self, value: str) -> None:
+        if value is None:
+            return
+        self.job_type = JobType(value)
+
+
+class JobShare(Base, TimeStampMixin):
+    """Job share tracking model."""
+    
+    __tablename__ = "job_shares"
+    
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    job_id = Column(UUID(as_uuid=False), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    shared_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"))  # User who shared
+    
+    platform = Column(String(50), nullable=False)  # 'linkedin', 'twitter', 'facebook', etc.
+    share_url = Column(String(500))  # URL where shared
+    ip_address = Column(String(45))  # IPv4/IPv6
+    user_agent = Column(String(500))
+    
+    # Relationships
+    job = relationship("Job", back_populates="shares")
+    shared_by_user = relationship("User", back_populates="job_shares", foreign_keys=[shared_by])
+    
+    def __repr__(self):
+        return f"<JobShare {self.job_id} on {self.platform}>"

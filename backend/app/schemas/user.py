@@ -30,12 +30,6 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
 
 
-class AdminUserUpdate(BaseModel):
-    """Schema for admin updating a user."""
-    is_active: Optional[bool] = None
-    is_super_admin: Optional[bool] = None
-
-
 class UserResponse(UserBase):
     """Schema for user response."""
     id: str
@@ -43,7 +37,6 @@ class UserResponse(UserBase):
     bio: Optional[str] = None
     is_active: bool
     is_verified: bool
-    is_super_admin: bool
     created_at: datetime
     
     class Config:

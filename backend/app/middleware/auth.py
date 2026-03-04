@@ -1,7 +1,7 @@
 """
 Authentication middleware for JWT verification and role-based access control.
 """
-from typing import Optional, List, Dict, Any
+from typing import List
 from functools import wraps
 
 from fastapi import Depends, HTTPException, status
@@ -16,24 +16,12 @@ from app.utils.security import decode_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-class CurrentMembership:
-    """Container for current user membership information."""
-    
-    def __init__(self, user: User, organization_id: Optional[str], role: Optional[str]):
-        self.user = user
-        self.organization_id = organization_id
-        self.role = role
-
-
-async def get_current_membership(
+async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
-) -> CurrentMembership:
+) -> User:
     """
-    Get current authenticated user membership information.
-    
-    Returns:
-        CurrentMembership with user, organization_id, and role
+    Get current authenticated user from JWT token.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,17 +29,16 @@ async def get_current_membership(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    try:
-        payload = decode_token(token)
-        user_id: str = payload.get("sub")
-        
-        if user_id is None:
-            raise credentials_exception
-    except Exception:
+    payload = decode_token(token)
+    if payload is None:
+        raise credentials_exception
+    user_id = payload.get("sub")
+    token_org_id = payload.get("org_id")
+    if user_id is None:
         raise credentials_exception
     
     # Get user from database
-    result = await db.execute(select(User).where(User.id == user_id))
+    result = await db.execute(select(User).where(User.id == str(user_id)))
     user = result.scalar_one_or_none()
     
     if user is None:
@@ -62,41 +49,40 @@ async def get_current_membership(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
-    
-    # Get user's organization membership
-    result = await db.execute(
-        select(OrganizationMember)
-        .where(OrganizationMember.user_id == user.id, OrganizationMember.is_active == True)
-        .limit(1)
+
+    membership_query = select(OrganizationMember).where(
+        OrganizationMember.user_id == user.id,
+        OrganizationMember.is_active == True,
     )
-    member = result.scalar_one_or_none()
+    if token_org_id:
+        membership_query = membership_query.where(
+            OrganizationMember.organization_id == str(token_org_id)
+        )
+    membership_query = membership_query.limit(1)
+
+    membership_result = await db.execute(membership_query)
+    membership = membership_result.scalar_one_or_none()
+
+    # Expose effective org/role for existing router code paths.
+    user.organization_id = membership.organization_id if membership else None  # type: ignore[attr-defined]
+    if membership:
+        user.role = getattr(membership.role, "value", membership.role)  # type: ignore[attr-defined]
+    else:
+        user.role = None  # type: ignore[attr-defined]
     
-    organization_id = member.organization_id if member else None
-    role = member.role.value if member else None
-    
-    return CurrentMembership(user=user, organization_id=organization_id, role=role)
+    return user
 
 
-async def get_current_user(
-    membership: CurrentMembership = Depends(get_current_membership),
-) -> User:
-    """
-    Get current authenticated user (legacy compatibility).
-    """
-    return membership.user
-
-
-async def get_super_admin_user(
+async def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Get current user and verify they are a super admin.
-    Raises 403 if user is not a super admin.
+    Get current active user.
     """
-    if not current_user.is_super_admin:
+    if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super admin access required",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user",
         )
     return current_user
 
@@ -110,13 +96,13 @@ class RoleChecker:
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
     
-    async def __call__(self, membership: CurrentMembership = Depends(get_current_membership)) -> CurrentMembership:
-        if membership.role not in self.allowed_roles:
+    async def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        if not current_user.role or current_user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied. Required roles: {', '.join(self.allowed_roles)}",
             )
-        return membership
+        return current_user
 
 
 def require_roles(allowed_roles: List[str]):
@@ -126,13 +112,13 @@ def require_roles(allowed_roles: List[str]):
     """
     def decorator(func):
         @wraps(func)
-        async def wrapper(*args, membership: CurrentMembership = Depends(get_current_membership), **kwargs):
-            if membership.role not in allowed_roles:
+        async def wrapper(*args, current_user: User = Depends(get_current_user), **kwargs):
+            if not current_user.role or current_user.role not in allowed_roles:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Access denied. Required roles: {', '.join(allowed_roles)}",
                 )
-            return await func(*args, membership=membership, **kwargs)
+            return await func(*args, current_user=current_user, **kwargs)
         return wrapper
     return decorator
 
@@ -146,11 +132,11 @@ class OrganizationChecker:
     async def __call__(
         self,
         organization_id: str,
-        membership: CurrentMembership = Depends(get_current_membership),
-    ) -> CurrentMembership:
-        if str(membership.organization_id) != organization_id:
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        if str(current_user.organization_id) != organization_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this organization's resources",
             )
-        return membership
+        return current_user

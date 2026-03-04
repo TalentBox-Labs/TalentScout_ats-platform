@@ -1,5 +1,6 @@
 """User and Organization models."""
-from sqlalchemy import Column, String, Boolean, ForeignKey, Enum as SQLEnum, Text, JSON
+from sqlalchemy import Column, String, Boolean, ForeignKey, Text, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.database import Base
@@ -20,7 +21,7 @@ class Organization(Base, TimeStampMixin):
     
     __tablename__ = "organizations"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
     name = Column(String(255), nullable=False)
     domain = Column(String(255), unique=True, index=True)
     logo_url = Column(String(500))
@@ -29,14 +30,11 @@ class Organization(Base, TimeStampMixin):
     size = Column(String(50))  # e.g., "1-10", "11-50", "51-200"
     settings = Column(JSON, default=dict)  # Organization-wide settings
     is_active = Column(Boolean, default=True)
-    subscription_id = Column(String, ForeignKey("subscriptions.id", ondelete="SET NULL"), nullable=True, unique=True)
     
     # Relationships
     members = relationship("OrganizationMember", back_populates="organization", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="organization", cascade="all, delete-orphan")
     candidates = relationship("Candidate", back_populates="organization", cascade="all, delete-orphan")
-    subscription = relationship("Subscription", back_populates="organization", foreign_keys=[subscription_id])
-    payment_transactions = relationship("PaymentTransaction", back_populates="organization")
     
     def __repr__(self):
         return f"<Organization {self.name}>"
@@ -47,7 +45,7 @@ class User(Base, TimeStampMixin):
     
     __tablename__ = "users"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     first_name = Column(String(100), nullable=False)
@@ -59,7 +57,6 @@ class User(Base, TimeStampMixin):
     timezone = Column(String(50), default="UTC")
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    is_super_admin = Column(Boolean, default=False)
     last_login = Column(String(255))
     
     # OAuth fields
@@ -70,6 +67,7 @@ class User(Base, TimeStampMixin):
     # Relationships
     organizations = relationship("OrganizationMember", back_populates="user", cascade="all, delete-orphan")
     created_jobs = relationship("Job", back_populates="created_by_user", foreign_keys="Job.created_by")
+    job_shares = relationship("JobShare", back_populates="shared_by_user", foreign_keys="JobShare.shared_by")
     comments = relationship("ApplicationNote", back_populates="user")
     interviews = relationship("InterviewParticipant", back_populates="user")
     activities = relationship("ApplicationActivity", back_populates="user")
@@ -88,10 +86,11 @@ class OrganizationMember(Base, TimeStampMixin):
     
     __tablename__ = "organization_members"
     
-    id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.RECRUITER)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=generate_uuid)
+    organization_id = Column(UUID(as_uuid=False), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    # Stored as string to match existing migration/table definition.
+    role = Column(String(50), nullable=False, default=UserRole.RECRUITER.value)
     is_active = Column(Boolean, default=True)
     permissions = Column(JSON, default=dict)  # Custom permissions
     

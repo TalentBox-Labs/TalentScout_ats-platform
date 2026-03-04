@@ -120,8 +120,8 @@ export default function CandidateDetailPage() {
               Experience
             </div>
             <div className="text-sm">
-              {candidate.total_experience_years != null
-                ? `${candidate.total_experience_years} years`
+              {(candidate.years_of_experience ?? candidate.total_experience_years) != null
+                ? `${candidate.years_of_experience ?? candidate.total_experience_years} years`
                 : 'Not specified'}
             </div>
           </div>

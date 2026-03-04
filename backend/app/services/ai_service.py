@@ -3,18 +3,12 @@ from typing import Dict, Any, List, Optional
 from openai import AsyncOpenAI
 from app.config import settings
 
-# Initialize AsyncOpenAI client only if API key is provided
-client = AsyncOpenAI(api_key=settings.openai_api_key) if settings.openai_api_key else None
+# Initialize AsyncOpenAI client
+client = AsyncOpenAI(api_key=settings.openai_api_key)
 
 
 class AIService:
     """Service for AI-powered features."""
-    
-    @staticmethod
-    def _check_ai_available():
-        """Check if AI features are available."""
-        if client is None:
-            raise ValueError("AI features are not available. Please set OPENAI_API_KEY environment variable.")
     
     @staticmethod
     async def parse_resume_text(resume_text: str) -> Dict[str, Any]:
@@ -27,7 +21,6 @@ class AIService:
         Returns:
             Structured resume data
         """
-        AIService._check_ai_available()
         prompt = f"""
         Extract structured information from the following resume. Return a JSON object with this structure:
         {{
@@ -93,7 +86,6 @@ class AIService:
         Returns:
             AI-generated summary
         """
-        AIService._check_ai_available()
         prompt = f"""
         Create a concise 2-3 sentence professional summary for this candidate:
         
@@ -133,7 +125,6 @@ class AIService:
         Returns:
             Embedding vector
         """
-        AIService._check_ai_available()
         try:
             response = await client.embeddings.create(
                 model=settings.openai_embedding_model,
@@ -161,7 +152,6 @@ class AIService:
         Returns:
             Screening results with score and insights
         """
-        AIService._check_ai_available()
         # Format candidate profile
         candidate_profile = f"""
         Name: {candidate_data.get('name', 'N/A')}
@@ -240,7 +230,6 @@ class AIService:
         Returns:
             Dict with subject and body
         """
-        AIService._check_ai_available()
         email_templates = {
             "rejection": "Write a respectful rejection email",
             "interview_invite": "Write an interview invitation email",
@@ -306,7 +295,6 @@ class AIService:
         Returns:
             Dict with title, description, requirements, responsibilities, suggested_skills
         """
-        AIService._check_ai_available()
         skills_text = ", ".join(key_skills) if key_skills else "relevant skills for the role"
         
         prompt = f"""
@@ -370,7 +358,6 @@ class AIService:
         Returns:
             List of interview questions
         """
-        AIService._check_ai_available()
         # Format job context
         job_description = f"""
         Title: {job_context.get('title', 'N/A')}
@@ -414,46 +401,34 @@ class AIService:
             return []
 
     @staticmethod
-    async def enhance_email(email_body: str) -> Dict[str, Any]:
+    async def enhance_email(body: str) -> Dict[str, str]:
         """
-        Enhance email content using AI for better engagement.
-        
-        Args:
-            email_body: Original email body
-            
-        Returns:
-            Dict with enhanced body and suggestions
+        Light-weight compatibility helper used by communications router.
+        Returns original body if enhancement fails or AI is unavailable.
         """
-        AIService._check_ai_available()
+        if not body:
+            return {"body": ""}
+
         prompt = f"""
-        Enhance the following email for better engagement and professionalism.
-        Make it more compelling while maintaining the original intent.
-        
-        Original email:
-        {email_body}
-        
-        Return a JSON object with:
-        {{
-            "body": "enhanced email body",
-            "improvements": ["list of improvements made"]
-        }}
+        Improve the following email for clarity and professionalism while preserving intent.
+        Return JSON with one field: {{"body": "enhanced html body"}}.
+
+        Email:
+        {body}
         """
-        
         try:
             response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=[
-                    {"role": "system", "content": "You are a professional email writer who enhances communication."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": "You improve recruiting emails."},
+                    {"role": "user", "content": prompt},
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.7,
+                temperature=0.3,
             )
-            
             import json
-            result = json.loads(response.choices[0].message.content)
-            return result
-            
-        except Exception as e:
-            print(f"Error enhancing email: {str(e)}")
-            return {"body": email_body, "improvements": []}
+
+            parsed = json.loads(response.choices[0].message.content)
+            return {"body": parsed.get("body", body)}
+        except Exception:
+            return {"body": body}

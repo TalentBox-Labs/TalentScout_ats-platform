@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
+import Login from './components/Login'
+import Dashboard from './components/Dashboard'
 
 function App() {
   const [apiStatus, setApiStatus] = useState<string>('Checking...')
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://192.168.10.101:3547'
 
   useEffect(() => {
     // Check backend API health
@@ -17,7 +21,17 @@ function App() {
       })
   }, [backendUrl])
 
-  return (
+  const handleLogin = (newToken: string) => {
+    setToken(newToken)
+    localStorage.setItem('token', newToken)
+  }
+
+  const handleLogout = () => {
+    setToken(null)
+    localStorage.removeItem('token')
+  }
+
+  const HomePage = () => (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
@@ -29,7 +43,7 @@ function App() {
               <p className="text-xl text-gray-600 mb-8">
                 Applicant Tracking System
               </p>
-              
+
               <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-8">
                 <p className="text-lg font-semibold text-blue-900 mb-2">
                   Backend Status:
@@ -43,7 +57,7 @@ function App() {
                   <p className="text-blue-100">React + TypeScript + Vite</p>
                   <p className="text-sm text-blue-200 mt-4">Running on port 5173</p>
                 </div>
-                
+
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
                   <h3 className="text-2xl font-bold mb-2">Backend</h3>
                   <p className="text-green-100">Python + FastAPI</p>
@@ -51,36 +65,39 @@ function App() {
                 </div>
               </div>
 
-              <div className="text-left bg-gray-50 rounded-lg p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">🚀 Next Steps:</h3>
-                <ul className="space-y-3 text-gray-700">
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">1.</span>
-                    <span>Install dependencies: <code className="bg-gray-200 px-2 py-1 rounded text-sm">cd frontend && npm install</code></span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">2.</span>
-                    <span>Install backend dependencies: <code className="bg-gray-200 px-2 py-1 rounded text-sm">cd backend && npm install</code></span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">3.</span>
-                    <span>Configure environment variables (see <code className="bg-gray-200 px-2 py-1 rounded text-sm">.env.example</code>)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">4.</span>
-                    <span>Set up PostgreSQL database</span>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">5.</span>
-                    <span>Start building your ATS features!</span>
-                  </li>
-                </ul>
+              <div className="text-center">
+                <button
+                  onClick={() => window.location.href = '/login'}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg text-lg font-medium shadow-lg"
+                >
+                  Get Started - Sign In
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  )
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/login"
+          element={
+            token ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            token ? <Dashboard token={token} onLogout={handleLogout} /> : <Navigate to="/login" />
+          }
+        />
+      </Routes>
+    </Router>
   )
 }
 

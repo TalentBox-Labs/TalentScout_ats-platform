@@ -19,18 +19,34 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add current_position and current_company columns to candidates table
-    op.add_column('candidates', sa.Column('current_position', sa.String(length=255), nullable=True))
-    op.add_column('candidates', sa.Column('current_company', sa.String(length=255), nullable=True))
-    # Create indexes for the new columns
-    op.create_index(op.f('ix_candidates_current_position'), 'candidates', ['current_position'], unique=False)
-    op.create_index(op.f('ix_candidates_current_company'), 'candidates', ['current_company'], unique=False)
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_columns = {col["name"] for col in inspector.get_columns("candidates")}
+    existing_indexes = {idx["name"] for idx in inspector.get_indexes("candidates")}
+
+    if "current_position" not in existing_columns:
+        op.add_column("candidates", sa.Column("current_position", sa.String(length=255), nullable=True))
+    if "current_company" not in existing_columns:
+        op.add_column("candidates", sa.Column("current_company", sa.String(length=255), nullable=True))
+
+    if op.f("ix_candidates_current_position") not in existing_indexes:
+        op.create_index(op.f("ix_candidates_current_position"), "candidates", ["current_position"], unique=False)
+    if op.f("ix_candidates_current_company") not in existing_indexes:
+        op.create_index(op.f("ix_candidates_current_company"), "candidates", ["current_company"], unique=False)
 
 
 def downgrade() -> None:
-    # Drop indexes first
-    op.drop_index(op.f('ix_candidates_current_company'), table_name='candidates')
-    op.drop_index(op.f('ix_candidates_current_position'), table_name='candidates')
-    # Drop columns
-    op.drop_column('candidates', 'current_company')
-    op.drop_column('candidates', 'current_position')
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    existing_columns = {col["name"] for col in inspector.get_columns("candidates")}
+    existing_indexes = {idx["name"] for idx in inspector.get_indexes("candidates")}
+
+    if op.f("ix_candidates_current_company") in existing_indexes:
+        op.drop_index(op.f("ix_candidates_current_company"), table_name="candidates")
+    if op.f("ix_candidates_current_position") in existing_indexes:
+        op.drop_index(op.f("ix_candidates_current_position"), table_name="candidates")
+
+    if "current_company" in existing_columns:
+        op.drop_column("candidates", "current_company")
+    if "current_position" in existing_columns:
+        op.drop_column("candidates", "current_position")

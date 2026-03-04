@@ -12,7 +12,6 @@ export interface User {
   bio?: string
   is_active: boolean
   is_verified: boolean
-  is_super_admin: boolean
   created_at: string
 }
 
@@ -39,7 +38,7 @@ export interface Job {
   department?: string
   location?: string
   is_remote: boolean
-  job_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
   experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'principal'
   salary_min?: number
   salary_max?: number
@@ -48,17 +47,11 @@ export interface Job {
   openings: number
   skills_required?: string[]
   skills_preferred?: string[]
+  stages?: JobStage[]
+  is_public?: boolean
+  public_url?: string
   created_at: string
   updated_at: string
-  // Public job features
-  is_public?: boolean
-  public_slug?: string
-  share_count?: number
-  share_metadata?: Record<string, any>
-  og_image_url?: string
-  published_at?: string
-  view_count?: number
-  show_salary_public?: boolean
 }
 
 export interface JobStage {
@@ -88,6 +81,7 @@ export interface Candidate {
   linkedin_url?: string
   github_url?: string
   total_experience_years?: number
+  years_of_experience?: number
   quality_score?: number
   tags?: string[]
   created_at: string
@@ -143,6 +137,7 @@ export interface Application {
   applied_at?: string
   created_at: string
   updated_at: string
+  current_stage_obj?: JobStage
   
   // Relations
   job?: Job
@@ -233,43 +228,4 @@ export interface PaginatedResponse<T> {
   page: number
   per_page: number
   total_pages: number
-}
-
-// Public Job Types
-export interface PublicJob {
-  id: string
-  title: string
-  description: string
-  requirements?: string
-  responsibilities?: string
-  department?: string
-  location?: string
-  job_type: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary'
-  experience_level: 'entry' | 'junior' | 'mid' | 'senior' | 'lead' | 'principal'
-  salary_min?: number
-  salary_max?: number
-  salary_currency?: string
-  skills_required: string[]
-  organization_name?: string
-  created_at: string
-  published_at?: string
-  view_count: number
-  share_count: number
-}
-
-export interface ShareLink {
-  platform: string
-  url: string
-  text: string
-}
-
-export interface ShareLinksResponse {
-  job_id: string
-  job_title: string
-  public_url: string
-  share_links: ShareLink[]
-}
-
-export interface TrackShareRequest {
-  platform: 'linkedin' | 'twitter' | 'facebook' | 'email' | 'copy'
 }
