@@ -138,6 +138,7 @@ jobs:
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            ALLOWED_ORIGINS=https://talentscout.workcrew.ai,http://localhost:3000,http://localhost:5173
             EOF
             
             # Pull latest images
