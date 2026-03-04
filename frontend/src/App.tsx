@@ -7,7 +7,7 @@ import Dashboard from './components/Dashboard'
 function App() {
   const [apiStatus, setApiStatus] = useState<string>('Checking...')
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.10.101:3547'
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://192.168.10.101:3547'
 
   useEffect(() => {
     // Check backend API health

@@ -15,7 +15,7 @@ export default function Dashboard({ token, onLogout }: DashboardProps) {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://192.168.10.101:3547'}/api/v1/jobs`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://192.168.10.101:3547'}/api/v1/jobs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

@@ -16,7 +16,7 @@ export default function Login({ onLogin }: LoginProps) {
     setError('')
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://192.168.10.101:3547'}/api/v1/auth/login`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://192.168.10.101:3547'}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
